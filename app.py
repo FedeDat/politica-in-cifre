@@ -167,10 +167,15 @@ def extract_numbers(pdf_url):
     text = "\n".join(page.get_text() for page in pdf)
     lines = [l.strip() for l in text.split("\n") if l.strip()]
 
-    if len(lines) < 5:
+    if len(lines) < 3:
         return None
 
     target = lines[-3]
+
+    totale=lines[-2].replace(".", "").replace(",", ".")
+
+    if float(totale) > 1E6:
+        target = lines[-4]
 
     pattern = r"\d{1,3}(?:\.\d{3})*,\d{2}"
 
@@ -179,15 +184,17 @@ def extract_numbers(pdf_url):
     if not numbers:
         numbers = re.findall(pattern, lines[-5])
 
-    values = [
-        float(x.replace(".", "").replace(",", "."))
-        for x in numbers
-    ]
+    numbers = [float(item.replace(".", "").replace(",", ".")) for item in numbers]
+
+    if any(x < 10 and x != 0 for x in numbers):
+        target = lines[-5]
+        numbers = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", target)
+        numbers = [float(item.replace(".", "").replace(",", ".")) for item in numbers]
 
     if len(values) < 2:
         return None
 
-    return values
+    return [n for n in numbers]
 
 # =========================
 # SCRAPER SINGLE
