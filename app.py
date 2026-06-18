@@ -207,6 +207,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
                 date = datetime.strptime(pdf[-29:-21], "%Y%m%d").date()
 
                 rows.append({
+                    "Mese": date.dt.to_period("M")
                     "Data": date,
                     "Lordo (€)": values[1],
                     "Ritenuta (€)": values[0],
@@ -220,7 +221,15 @@ def scrape_all_single(name, progress_bar=None, status=None):
             if progress_bar:
                 progress_bar.progress(i / total)
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    df["Data"] = pd.to_datetime(df["Data"])
+
+    df = df.sort_values("Data", ascending=False)
+
+    df = df.reset_index(drop=True)
+
+    return df
 
 # =========================
 # STREAMLIT UI
