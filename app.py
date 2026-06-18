@@ -281,7 +281,7 @@ def get_councillors():
 
 df_list = get_councillors()
 
-df_list.loc[len(df_list)] = ["Raffaele Gallo (XI)", "Partito Democratico", "0%", "0%", "None"]
+df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
 
 names = df_list["Nominativo"].tolist()
 
