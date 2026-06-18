@@ -229,6 +229,8 @@ def scrape_all_single(name, progress_bar=None, status=None):
     df = df.reset_index(drop=True)
 
     df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+
+    df["Data"] = df["Data"].dt.date
     
     return df
 
