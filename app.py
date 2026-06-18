@@ -281,14 +281,7 @@ def get_councillors():
 
 df_list = get_councillors()
 
-raffaele-gallo = {
-    df_list.columns[0]: "Raffaele Gallo (XI)",
-    df_list.columns[1]: "Partito Democratico",
-    df_list.columns[2]: "0%",
-    df_list.columns[3]: "0%",
-}
-
-df_list = pd.concat([df_list, pd.DataFrame([raffaele-gallo])], ignore_index=True)
+df_list.loc[len(df_list)] = ["Raffaele Gallo (XI)", "Partito Democratico", "0%", "0%"]
 
 names = df_list["Nominativo"].tolist()
 
