@@ -114,6 +114,16 @@ def get_photo(profile_url):
 
     return urljoin(profile_url, img_src) if img_src else None
 
+def get_group(name):
+    try:
+        df = get_councillors()
+        row = df[df["Nominativo"] == name]
+        if len(row) == 0:
+            return None
+        return row.iloc[0].get("Gruppo consiliare", None)
+    except:
+        return None
+
 # =========================
 # PDF LINKS
 # =========================
@@ -253,6 +263,27 @@ if run:
         st.stop()
 
     st.success(f"Records trovati: {len(df)}")
+    
+    # =========================
+    # 🧑 INFO CONSIGLIERE
+    # =========================
+
+    photo = get_photo(find_profile(selected))
+    group = get_group(selected)
+
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        if photo:
+            st.image(photo, width=180)
+        else:
+            st.info("Foto non disponibile")
+
+    with col2:
+        st.subheader(selected)
+        st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
+
+    st.divider()
 
     st.dataframe(df, use_container_width=True)
 
