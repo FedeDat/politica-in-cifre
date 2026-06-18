@@ -302,7 +302,10 @@ if run:
     photo = get_photo(find_profile(selected))
     group = get_group(selected)
 
-    col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
+    votes, preferences = get_presences(selected)
+    
+
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 2, 2, 2, 2])
 
     with col1:
         if photo:
@@ -319,15 +322,12 @@ if run:
 
     with col4:
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
-
-    # Second row (2 columns)
-    col5, col6 = st.columns(2)
     
     with col5:
-        st.write("Additional info 1")
+        st.metric("Partecipazione ai voti (XII Legislatura):"votes"%)
     
     with col6:
-        st.write("Additional info 2")
+        st.metric("Partecipazione alle sedute (XII Legislatura):"preferences"%)
 
     st.divider()
 
