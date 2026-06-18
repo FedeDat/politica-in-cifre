@@ -252,8 +252,6 @@ def scrape_all_single(name, progress_bar=None, status=None):
     cols = ["Mese"] + [c for c in df.columns if c != "Mese"]
     df = df[cols]
 
-    df = df.loc[:, df.columns != df.columns[0]]
-
     netto_totale = df["Netto (€)"].sum()
     lordo_totale = df["Lordo (€)"].sum()
     
@@ -321,6 +319,15 @@ if run:
 
     with col4:
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
+
+    # Second row (2 columns)
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        st.write("Additional info 1")
+    
+    with col6:
+        st.write("Additional info 2")
 
     st.divider()
 
