@@ -246,9 +246,9 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
 st.set_page_config(page_title="Piemonte Politics Costs", layout="wide")
 
-st.title("🏛️ Piemonte Politics Cost Tracker")
+st.title("🏛️ Tracciatore dei compensi dei Consiglieri Regionali - XII Legislatura (2024-2029)")
 
-st.write("Analisi compensi consiglieri regionali")
+st.write("Il codice analizza i dati dei cedolini dei Consiglieri Regionali Piemontesi (XII Legislatura) disponibili sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
 
 @st.cache_data(show_spinner=False)
 def get_councillors():
@@ -259,7 +259,7 @@ def get_councillors():
 df_list = get_councillors()
 names = df_list["Nominativo"].tolist()
 
-selected = st.selectbox("Seleziona consigliere", names)
+selected = st.selectbox("Seleziona Consigliere", names)
 
 run = st.button("Analizza", type="primary")
 
