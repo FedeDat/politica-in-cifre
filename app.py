@@ -231,6 +231,9 @@ def scrape_all_single(name, progress_bar=None, status=None):
     df["Mese"] = df["Data"].dt.to_period("M").astype(str)
 
     df["Data"] = df["Data"].dt.date
+
+    cols = ["Mese"] + [c for c in df.columns if c != "Mese"]
+    df = df[cols]
     
     return df
 
