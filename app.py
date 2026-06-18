@@ -213,7 +213,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
     total = len(pdfs)
 
     if status:
-        status.write(f"Scraping {name}")
+        status.write(f"Analizzando i compensi di {name}")
 
     with ThreadPoolExecutor(max_workers=8) as ex:
 
@@ -338,7 +338,16 @@ if run:
 
     st.divider()
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(
+    df,
+    use_container_width=True,
+    column_config={
+        "Cedolino": st.column_config.LinkColumn(
+            "Cedolino PDF",
+            display_text="Apri PDF"
+        )
+    }
+)
 
     # =========================
     # CHART
