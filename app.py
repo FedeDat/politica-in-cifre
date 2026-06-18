@@ -184,7 +184,6 @@ def scrape_all_single(name, progress_bar=None, status=None):
     if not profile:
         return pd.DataFrame()
 
-    photo = get_photo(profile)
     pdfs = get_pdf_links(profile)
 
     total = len(pdfs)
@@ -209,12 +208,11 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
                 rows.append({
                     "Nominativo": name,
-                    "Photo": photo,
                     "Data": date,
                     "Lordo (€)": values[1],
                     "Ritenuta (€)": values[0],
                     "Netto (€)": values[1] - values[0],
-                    "PDF": pdf
+                    "Cedolino": pdf
                 })
 
             except:
