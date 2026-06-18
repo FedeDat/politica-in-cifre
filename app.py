@@ -207,7 +207,6 @@ def scrape_all_single(name, progress_bar=None, status=None):
                 date = datetime.strptime(pdf[-29:-21], "%Y%m%d").date()
 
                 rows.append({
-                    "Nominativo": name,
                     "Data": date,
                     "Lordo (€)": values[1],
                     "Ritenuta (€)": values[0],
