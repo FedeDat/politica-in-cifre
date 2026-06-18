@@ -92,13 +92,3 @@ def scrape_all_single(name, progress_bar=None, status=None):
                 progress_bar.progress(i / total)
 
     return pd.DataFrame(rows)
-
-# convert date
-df["Data"] = pd.to_datetime(df["Data"])
-df["Mese"] = df["Data"].dt.to_period("M").astype(str)
-
-monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
-
-st.subheader("📊 Rimborso mensile (Netto)")
-
-st.bar_chart(monthly.set_index("Mese"))
