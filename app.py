@@ -299,10 +299,10 @@ if run:
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
 
     with col3:
-        st.metric("Lordo totale (€)", f"{lordo_totale:,.2f}")
+        st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
 
     with col4:
-        st.metric("Netto totale (€)", f"{netto_totale:,.2f}")
+        st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
 
     st.divider()
 
