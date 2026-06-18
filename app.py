@@ -343,8 +343,7 @@ if run:
     use_container_width=True,
     column_config={
         "Cedolino": st.column_config.LinkColumn(
-            "Cedolino PDF",
-            display_text="Apri PDF"
+            "Cedolino PDF"
         )
     }
 )
