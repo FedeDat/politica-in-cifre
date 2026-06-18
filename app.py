@@ -124,6 +124,23 @@ def get_group(name):
     except:
         return None
 
+def get_presences(name):
+    try:
+        df = get_councillors()
+        row = df[df["Nominativo"] == name]
+        if len(row) == 0:
+            return None
+
+        votes = row.iloc[0].get("Voti", None)
+        presences = row.iloc[0].get("Presenze", None)
+
+        votes = re.search(r"\d+", votes).group()
+        presences = re.search(r"\d+", presences).group()
+        
+        return votes, presences 
+    except:
+        return None
+
 # =========================
 # PDF LINKS
 # =========================
@@ -254,7 +271,6 @@ st.write("Il codice analizza i dati dei cedolini dei Consiglieri Regionali Piemo
 def get_councillors():
     url = "https://www.cr.piemonte.it/cms/consiglieri"
     return pd.read_html(url)[0]
-
 
 df_list = get_councillors()
 names = df_list["Nominativo"].tolist()
