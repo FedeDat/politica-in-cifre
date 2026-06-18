@@ -280,9 +280,19 @@ def get_councillors():
     return pd.read_html(url)[0]
 
 df_list = get_councillors()
+
+raffaele-gallo = {
+    df_list.columns[0]: "Raffaele Gallo (XI)",
+    df_list.columns[1]: "Partito Democratico",
+    df_list.columns[2]: "0%",
+    df_list.columns[3]: "0%",
+}
+
+df_list = pd.concat([df_list, pd.DataFrame([raffaele-gallo])], ignore_index=True)
+
 names = df_list["Nominativo"].tolist()
 
-selected = st.selectbox("Seleziona Consigliere", names)
+selected = st.selectbox("Seleziona (ex) Consigliere", names)
 
 run = st.button("Analizza", type="primary")
 
