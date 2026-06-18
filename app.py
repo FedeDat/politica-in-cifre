@@ -204,7 +204,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
                 if not values:
                     continue
 
-                date = datetime.strptime(pdf[-29:-21], "%Y%m%d").date()
+                date = datetime.strptime(pdf[-29:-21], "%Y%m%d")
 
                 rows.append({
                     "Data": date,
@@ -228,6 +228,8 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
     df = df.reset_index(drop=True)
 
+    df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+    
     return df
 
 # =========================
