@@ -191,7 +191,7 @@ def extract_numbers(pdf_url):
         numbers = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", target)
         numbers = [float(item.replace(".", "").replace(",", ".")) for item in numbers]
 
-    if len(values) < 2:
+    if len(numbers) < 2:
         return None
 
     return [n for n in numbers]
