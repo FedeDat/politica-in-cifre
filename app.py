@@ -252,6 +252,8 @@ def scrape_all_single(name, progress_bar=None, status=None):
     cols = ["Mese"] + [c for c in df.columns if c != "Mese"]
     df = df[cols]
 
+    df = df.iloc[:, 1:] 
+
     netto_totale = df["Netto (€)"].sum()
     lordo_totale = df["Lordo (€)"].sum()
     
