@@ -268,7 +268,7 @@ if run:
     progress = st.progress(0)
     status = st.empty()
 
-    df = scrape_all_single(selected, progress, status)
+    df, netto_totale, lordo_totale = scrape_all_single(selected, progress, status)
 
     progress.empty()
     status.empty()
@@ -286,7 +286,7 @@ if run:
     photo = get_photo(find_profile(selected))
     group = get_group(selected)
 
-    col1, col2, col3, col4 = st.columns([1, 5])
+    col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
 
     with col1:
         if photo:
@@ -299,12 +299,10 @@ if run:
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
 
     with col3:
-        st.subheader(selected)
-        st.write(f" **Lordo totale ricevuto in attività (€):** {lordo_totale if lordo_totale else 'N/D'}")
+        st.metric("Lordo totale (€)", f"{lordo_totale:,.2f}")
 
     with col4:
-        st.subheader(selected)
-        st.write(f" **Netto totale ricevuto in attività (€):** {netto_totale if netto_totale else 'N/D'}")
+        st.metric("Netto totale (€)", f"{netto_totale:,.2f}")
 
     st.divider()
 
