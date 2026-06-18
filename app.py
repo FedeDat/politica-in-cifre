@@ -234,8 +234,11 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
     cols = ["Mese"] + [c for c in df.columns if c != "Mese"]
     df = df[cols]
+
+    netto_totale = df["Netto (€)"].sum()
+    lordo_totale = df["Lordo (€)"].sum()
     
-    return df
+    return df, netto_totale, lordo_totale
 
 # =========================
 # STREAMLIT UI
@@ -283,7 +286,7 @@ if run:
     photo = get_photo(find_profile(selected))
     group = get_group(selected)
 
-    col1, col2 = st.columns([1, 3])
+    col1, col2, col3, col4 = st.columns([1, 5])
 
     with col1:
         if photo:
@@ -294,6 +297,14 @@ if run:
     with col2:
         st.subheader(selected)
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
+
+    with col3:
+        st.subheader(selected)
+        st.write(f" **Lordo totale ricevuto in attività (€):** {lordo_totale if lordo_totale else 'N/D'}")
+
+    with col4:
+        st.subheader(selected)
+        st.write(f" **Netto totale ricevuto in attività (€):** {netto_totale if netto_totale else 'N/D'}")
 
     st.divider()
 
