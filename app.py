@@ -13,57 +13,162 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # =========================
-# STREAMLIT UI
+# CONFIG
 # =========================
 
-st.set_page_config(page_title="Piemonte Politics Costs", layout="wide")
+BASE_URL = "https://www.cr.piemonte.it/cms/legislatura-xii/consiglieri"
 
-st.title("🏛️ Piemonte Politics Cost Tracker")
+# =========================
+# SESSION
+# =========================
 
-st.write("Scraping pubblici compensi consiglieri regionali")
+def create_session():
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["GET", "HEAD"]
+    )
 
-# STEP 1: load list of councillors
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0"})
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+
+    return session
+
+
+SESSION = create_session()
+
+# =========================
+# DOWNLOAD HELPERS
+# =========================
+
 @st.cache_data(show_spinner=False)
-def get_councillors():
-    url = "https://www.cr.piemonte.it/cms/consiglieri"
-    df = pd.read_html(url)[0]
-    return df
+def get_html(url):
+    r = SESSION.get(url, timeout=30)
+    r.raise_for_status()
+    return r.text
 
 
-df_list = get_councillors()
+@st.cache_data(show_spinner=False)
+def get_pdf_bytes(url):
+    r = SESSION.get(url, timeout=60)
+    r.raise_for_status()
+    return r.content
 
-names = df_list["Nominativo"].tolist()
+# =========================
+# PROFILE
+# =========================
 
-selected = st.selectbox("Seleziona consigliere", names)
+def find_profile(name):
+    words = name.lower().split()
 
-run = st.button("Analizza consigliere", type="primary")
+    candidates = [
+        "-".join(words),
+        "".join(words),
+        "-".join(words[1:]) if len(words) > 1 else "",
+        "-".join([words[0], words[-1]]) if len(words) > 1 else "",
+    ]
 
-if run:
+    for slug in candidates:
+        if not slug:
+            continue
 
-    progress = st.progress(0)
-    status = st.empty()
+        url = f"{BASE_URL}/{slug}"
 
-    with st.spinner("Scraping in corso..."):
+        try:
+            r = SESSION.head(url, allow_redirects=True, timeout=10)
+            if r.status_code == 200:
+                return url
+        except:
+            continue
 
-        df = scrape_all_single(selected, progress, status)
+    return None
 
-    progress.empty()
-    status.empty()
+# =========================
+# PHOTO
+# =========================
 
-    if df.empty:
-        st.warning("Nessun dato trovato per questo consigliere.")
-        st.stop()
+def get_photo(profile_url):
+    soup = BeautifulSoup(get_html(profile_url), "html.parser")
 
-    st.success(f"Done! {len(df)} records extracted.")
+    main = (
+        soup.find("main")
+        or soup.find("div", class_="scheda-consigliere")
+        or soup.find("div", id="content")
+    )
 
-    st.dataframe(df, use_container_width=True)
+    img_src = None
+
+    if main:
+        img = main.find("img")
+        if img and img.get("src"):
+            img_src = img["src"]
+
+    if not img_src:
+        for img in soup.find_all("img"):
+            src = img.get("src", "")
+            if src and not any(x in src.lower() for x in ["logo", "icon", "banner"]):
+                img_src = src
+                break
+
+    return urljoin(profile_url, img_src) if img_src else None
+
+# =========================
+# PDF LINKS
+# =========================
+
+def get_pdf_links(profile_url):
+    url = profile_url + "/cedolini"
+    soup = BeautifulSoup(get_html(url), "html.parser")
+
+    links = set()
+
+    for a in soup.find_all("a", href=True):
+        if "cedolini-batch" in a["href"] and a["href"].endswith(".pdf"):
+            links.add(urljoin(url, a["href"]))
+
+    return sorted(links, reverse=True)
+
+# =========================
+# PDF PARSER
+# =========================
+
+def extract_numbers(pdf_url):
+    pdf = fitz.open(stream=io.BytesIO(get_pdf_bytes(pdf_url)), filetype="pdf")
+
+    text = "\n".join(page.get_text() for page in pdf)
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    if len(lines) < 5:
+        return None
+
+    target = lines[-3]
+
+    pattern = r"\d{1,3}(?:\.\d{3})*,\d{2}"
+
+    numbers = re.findall(pattern, target)
+
+    if not numbers:
+        numbers = re.findall(pattern, lines[-5])
+
+    values = [
+        float(x.replace(".", "").replace(",", "."))
+        for x in numbers
+    ]
+
+    if len(values) < 2:
+        return None
+
+    return values
+
+# =========================
+# SCRAPER SINGLE
+# =========================
 
 def scrape_all_single(name, progress_bar=None, status=None):
 
     rows = []
-
-    if status:
-        status.write(f"Scraping **{name}**")
 
     profile = find_profile(name)
     if not profile:
@@ -73,6 +178,9 @@ def scrape_all_single(name, progress_bar=None, status=None):
     pdfs = get_pdf_links(profile)
 
     total = len(pdfs)
+
+    if status:
+        status.write(f"Scraping {name}")
 
     with ThreadPoolExecutor(max_workers=8) as ex:
 
@@ -106,3 +214,56 @@ def scrape_all_single(name, progress_bar=None, status=None):
                 progress_bar.progress(i / total)
 
     return pd.DataFrame(rows)
+
+# =========================
+# STREAMLIT UI
+# =========================
+
+st.set_page_config(page_title="Piemonte Politics Costs", layout="wide")
+
+st.title("🏛️ Piemonte Politics Cost Tracker")
+
+st.write("Analisi compensi consiglieri regionali")
+
+@st.cache_data(show_spinner=False)
+def get_councillors():
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+    return pd.read_html(url)[0]
+
+
+df_list = get_councillors()
+names = df_list["Nominativo"].tolist()
+
+selected = st.selectbox("Seleziona consigliere", names)
+
+run = st.button("Analizza", type="primary")
+
+if run:
+
+    progress = st.progress(0)
+    status = st.empty()
+
+    df = scrape_all_single(selected, progress, status)
+
+    progress.empty()
+    status.empty()
+
+    if df.empty:
+        st.warning("Nessun dato trovato")
+        st.stop()
+
+    st.success(f"Records trovati: {len(df)}")
+
+    st.dataframe(df, use_container_width=True)
+
+    # =========================
+    # CHART
+    # =========================
+
+    df["Data"] = pd.to_datetime(df["Data"])
+    df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+
+    monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
+
+    st.subheader("📊 Rimborso mensile (Netto)")
+    st.bar_chart(monthly.set_index("Mese"))
