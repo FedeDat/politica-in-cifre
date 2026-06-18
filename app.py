@@ -324,10 +324,10 @@ if run:
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
     
     with col5:
-        st.metric("Partecipazione ai voti (XII Legislatura):"votes"%)
+        st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
     
     with col6:
-        st.metric("Partecipazione alle sedute (XII Legislatura):"preferences"%)
+        st.metric("Partecipazione alle sedute (XII Legislatura)", f"{preferences}%")
 
     st.divider()
 
