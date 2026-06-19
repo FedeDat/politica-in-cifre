@@ -278,11 +278,12 @@ La disciplina del trattamento economico dei Consiglieri è dettagliata sotto e d
 import streamlit as st
 import pandas as pd
 
-st.title("Trattamento Economico Consiglieri Regionali Piemonte")
+# Titolo principale trasformato in subheader
+st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
 st.write("Sintesi delle voci economiche e delle indennità aggiornate.")
 
 # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
-st.subheader("1. Voci Principali del Trattamento Economico")
+st.markdown("**1. Voci Principali del Trattamento Economico**")
 
 dati_generali = {
     "Voce Economica": [
@@ -312,13 +313,11 @@ dati_generali = {
 }
 
 df_generale = pd.DataFrame(dati_generali)
-
-# Mostra la prima tabella
 st.dataframe(df_generale, use_container_width=True, hide_index=True)
 
 
 # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
-st.subheader("2. Dettaglio Indennità di Funzione (Aggiuntive)")
+st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
 st.write("Importi lordi mensili cumulabili in base alla carica ricoperta:")
 
 dati_funzioni = {
@@ -349,8 +348,6 @@ dati_funzioni = {
 }
 
 df_funzioni = pd.DataFrame(dati_funzioni)
-
-# Mostra la seconda tabella
 st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
 
 @st.cache_data(show_spinner=False)
