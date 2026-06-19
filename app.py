@@ -268,7 +268,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
 # STREAMLIT UI
 # =========================
 
-st.set_page_config(page_title="Piemonte Politics Costs", layout="wide")
+st.set_page_config(page_title="Politica in cifre", layout="wide")
 
 st.title("🏛️ Tracciatore dei compensi dei Consiglieri Regionali - XII Legislatura (2024-2029)")
 
