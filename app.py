@@ -386,7 +386,7 @@ names = df_list["Nominativo"].tolist()
 
 selected = st.selectbox("Seleziona Consigliere", names)
 
-run = st.button("Analizza", type="primary")
+run = st.button("Analizza i cedolini", type="primary")
 
 if run:
 
