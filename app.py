@@ -446,8 +446,7 @@ if run:
     with col2:
         st.subheader(selected)
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
-        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}**")
-        st.write(f"🎂 **{eta} anni**")
+        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** - 🎂 **{eta} anni**")
 
         if differenza > 0:
             st.caption(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
