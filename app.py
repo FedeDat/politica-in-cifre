@@ -381,6 +381,10 @@ def get_councillors():
 
 df_list = get_councillors()
 
+df_birth = get_birthdays_table()
+
+eta_media = round(df_birth["Età"].mean())
+
 #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
 
 names = df_list["Nominativo"].tolist()
@@ -488,8 +492,6 @@ if run:
 st.divider()
 
 st.subheader("📅 Data di nascita ed età dei Consiglieri Regionali")
-
-df_birth = get_birthdays_table()
 
 st.dataframe(
     df_birth,
