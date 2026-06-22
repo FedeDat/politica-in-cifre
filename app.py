@@ -451,18 +451,18 @@ if run:
         st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** - 🎂 **{eta} anni**")
 
         if differenza > 0:
-            st.caption(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
+            st.write(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
         elif differenza < 0:
-            st.caption(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
+            st.write(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
         else:
-            st.caption(f"In linea con l'età media del Consiglio ({eta_media} anni)")
+            st.write(f"In linea con l'età media del Consiglio ({eta_media} anni)")
 
         data_inizio = df.iloc[-1]["Data"]
 
         if data_inizio >= date(2024, 8, 1):
-            legislatura = "XII Legislatura"
+            legislatura = "Consigliere dal 2024 (Legislatura XII)."
         else:
-            legislatura = "XI-XII Legislatura"
+            legislatura = "Consigliere dal 2019 (Legislature XI e XII)."
         st.write(legislatura)
 
     with col3:
