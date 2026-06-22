@@ -436,7 +436,8 @@ if run:
     with col2:
         st.subheader(selected)
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
-        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** — 🎂 **{eta} anni**")
+        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}**)
+        st.write(f"🎂 **{eta} anni**")
 
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
@@ -451,6 +452,7 @@ if run:
     st.dataframe(
     df,
     use_container_width=True,
+    hide_index=True,
     column_config={
         "Cedolino": st.column_config.LinkColumn(
             "Cedolino PDF"
