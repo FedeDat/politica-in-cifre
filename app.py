@@ -382,18 +382,6 @@ df_list = get_councillors()
 
 #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
 
-st.divider()
-
-st.subheader("📅 Data di nascita ed età dei Consiglieri Regionali")
-
-df_birth = get_birthdays_table()
-
-st.dataframe(
-    df_birth,
-    use_container_width=True,
-    hide_index=True
-)
-
 names = df_list["Nominativo"].tolist()
 
 selected = st.selectbox("Seleziona Consigliere", names)
@@ -480,6 +468,18 @@ if run:
 
     st.subheader("📊 Rimborso mensile (Netto)")
     st.bar_chart(monthly.set_index("Mese"))
+
+st.divider()
+
+st.subheader("📅 Data di nascita ed età dei Consiglieri Regionali")
+
+df_birth = get_birthdays_table()
+
+st.dataframe(
+    df_birth,
+    use_container_width=True,
+    hide_index=True
+)
 
 # Titolo principale trasformato in subheader
 st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
