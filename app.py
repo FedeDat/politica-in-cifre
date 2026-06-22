@@ -370,8 +370,8 @@ st.set_page_config(page_title="Politica in cifre", layout="wide")
 
 st.title("🏛️ Tracciatore dei compensi dei Consiglieri Regionali - XII Legislatura (2024-2029)")
 
-st.write("""Il codice analizza i dati dei cedolini dei Consiglieri Regionali Piemontesi (XII Legislatura) estratti dal sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.
-La disciplina del trattamento economico dei Consiglieri con gli importi per voci disglossate è riportata a fine pagine e tratta dal link https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di.""")
+st.write("Il codice analizza i dati dei cedolini dei Consiglieri Regionali Piemontesi (XII Legislatura) estratti dal sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.  
+\nLa disciplina del trattamento economico dei Consiglieri con gli importi per voci disglossate è riportata a fine pagine e tratta dal link https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di.")
 
 @st.cache_data(show_spinner=False)
 def get_councillors():
