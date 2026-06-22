@@ -137,7 +137,7 @@ def estrai_data_nascita(url):
 
     soup = BeautifulSoup(get_html(url), "html.parser")
 
-    testo = soup.get_text(" ", strip=True)
+    testo = soup.get_text(" ", strip=True)[:500]
 
     m = re.search(
         r"Nat[oa].*?(\d{1,2})\s+"
