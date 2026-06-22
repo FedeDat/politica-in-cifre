@@ -156,6 +156,62 @@ def estrai_data_nascita(url):
         int(m.group(1))
     )
 
+def _birth_worker(nome):
+
+    try:
+        profile = find_profile(nome)
+
+        if not profile:
+            return None
+
+        nascita = estrai_data_nascita(profile)
+
+        if not nascita:
+            return None
+
+        oggi = date.today()
+
+        eta = (
+            oggi.year
+            - nascita.year
+            - ((oggi.month, oggi.day) < (nascita.month, nascita.day))
+        )
+
+        return {
+            "Consigliere": nome,
+            "Gruppo": get_group(nome),
+            "Data di nascita": nascita.strftime("%d/%m/%Y"),
+            "Età": eta
+        }
+
+    except Exception:
+        return None
+
+
+@st.cache_data(show_spinner=True)
+def get_birthdays_table():
+
+    nomi = get_councillors()["Nominativo"].tolist()
+
+    risultati = []
+
+    with ThreadPoolExecutor(max_workers=10) as ex:
+
+        futures = [ex.submit(_birth_worker, n) for n in nomi]
+
+        for f in as_completed(futures):
+
+            r = f.result()
+
+            if r:
+                risultati.append(r)
+
+    return (
+        pd.DataFrame(risultati)
+        .sort_values("Età", ascending=False)
+        .reset_index(drop=True)
+    )
+
 def get_group(name):
     try:
         df = get_councillors()
@@ -325,6 +381,18 @@ def get_councillors():
 df_list = get_councillors()
 
 #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
+
+st.divider()
+
+st.subheader("📅 Data di nascita ed età dei Consiglieri Regionali")
+
+df_birth = get_birthdays_table()
+
+st.dataframe(
+    df_birth,
+    use_container_width=True,
+    hide_index=True
+)
 
 names = df_list["Nominativo"].tolist()
 
