@@ -368,7 +368,7 @@ if run:
             - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
         )
     
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 2, 2, 2, 2])
+    col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
 
     with col1:
         if photo:
@@ -383,14 +383,10 @@ if run:
 
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
-
-    with col4:
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
     
-    with col5:
+    with col4:
         st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
-    
-    with col6:
         st.metric("Partecipazione alle sedute (XII Legislatura)", f"{preferences}%")
 
     st.divider()
