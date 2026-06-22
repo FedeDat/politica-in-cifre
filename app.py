@@ -409,7 +409,7 @@ if run:
         st.warning("Nessun dato trovato")
         st.stop()
 
-    st.success(f"Records trovati: {len(df)}")
+    st.success(f"Cedolini trovati: {len(df)}")
     
     # =========================
     # 🧑 INFO CONSIGLIERE
@@ -460,6 +460,7 @@ if run:
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
+        st.metric("Cedolini accessibili dal", df.iloc[-1]["Data"].strftime("%d-%m-%Y"))
     
     with col4:
         st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
