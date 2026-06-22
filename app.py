@@ -140,7 +140,7 @@ def estrai_data_nascita(url):
     testo = soup.get_text(" ", strip=True)[:500]
 
     m = re.search(
-        r"Nat[oa].*?(\d{1,2})\s+"
+        r"Nat[oa].*?(\d{1,2})\s*[°º]?\s+"
         r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
         r"\s+(\d{4})",
         testo,
