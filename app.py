@@ -424,6 +424,12 @@ if run:
             - data_nascita.year
             - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
         )
+
+    # Età media del Consiglio
+    eta_media = round(df_birth["Età"].mean())
+
+    # Scostamento dalla media
+    differenza = eta - eta_media
     
     col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
 
@@ -438,6 +444,13 @@ if run:
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
         st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}**")
         st.write(f"🎂 **{eta} anni**")
+
+        if differenza > 0:
+            st.caption(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
+        elif differenza < 0:
+            st.caption(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
+        else:
+            st.caption(f"In linea con l'età media del Consiglio ({eta_media} anni)")
 
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
