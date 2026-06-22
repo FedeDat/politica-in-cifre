@@ -368,9 +368,9 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
 st.set_page_config(page_title="Politica in cifre", layout="wide")
 
-st.title("🏛️ Tracciatore dei compensi dei Consiglieri Regionali - XII Legislatura (2024-2029)")
+st.title("🏛️ Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)")
 
-st.write("Il codice analizza i dati dei cedolini dei Consiglieri Regionali Piemontesi (XII Legislatura) estratti dal sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
+st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
 st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
 st.write("La disciplina del trattamento economico dei Consiglieri con gli importi per voci disglossate è riportata a fine pagine e tratta dal link: https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di.")
 
@@ -388,6 +388,8 @@ eta_media = round(df_birth["Età"].mean())
 #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
 
 names = df_list["Nominativo"].tolist()
+
+st.subheader("📊 Analizzatore dei Cedolini")
 
 selected = st.selectbox("Seleziona Consigliere", names)
 
@@ -485,12 +487,12 @@ if run:
 
     monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
 
-    st.subheader("📊 Rimborso mensile (Netto)")
+    st.markdown("**Rimborso mensile (Netto)**")
     st.bar_chart(monthly.set_index("Mese"))
 
 st.divider()
 
-st.subheader("📅 Data di nascita ed età dei Consiglieri Regionali")
+st.subheader("Data di nascita ed età dei Consiglieri Regionali")
 
 st.dataframe(
     df_birth,
