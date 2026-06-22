@@ -114,6 +114,53 @@ def get_photo(profile_url):
 
     return urljoin(profile_url, img_src) if img_src else None
 
+# =========================
+# DATA DI NASCITÀ
+# =========================
+
+mesi = {
+    "gennaio": 1,
+    "febbraio": 2,
+    "marzo": 3,
+    "aprile": 4,
+    "maggio": 5,
+    "giugno": 6,
+    "luglio": 7,
+    "agosto": 8,
+    "settembre": 9,
+    "ottobre": 10,
+    "novembre": 11,
+    "dicembre": 12,
+}
+
+def estrai_data_nascita(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    r = requests.get(url, headers=headers, timeout=20)
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    testo = soup.get_text(separator="\n", strip=True)
+
+    pattern = re.compile(
+        r"Nat[oa][^.\n]{0,120}?"
+        r"(\d{1,2})\s+"
+        r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+"
+        r"(\d{4})",
+        re.IGNORECASE
+    )
+
+    m = pattern.search(testo)
+    if not m:
+        return None
+
+    giorno = int(m.group(1))
+    mese = mesi[m.group(2).lower()]
+    anno = int(m.group(3))
+
+    return date(anno, mese, giorno)
+
 def get_group(name):
     try:
         df = get_councillors()
@@ -314,8 +361,18 @@ if run:
     group = get_group(selected)
 
     votes, preferences = get_presences(selected)
-    
 
+    data_nascita = estrai_data_nascita(find_profile(selected))
+
+    if data_nascita:
+        oggi = date.today()
+
+        eta = (
+            oggi.year
+            - data_nascita.year
+            - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
+        )
+    
     col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 2, 2, 2, 2])
 
     with col1:
@@ -327,6 +384,8 @@ if run:
     with col2:
         st.subheader(selected)
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
+            st.write(
+        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** — 🎂 **{eta} anni**")
 
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
