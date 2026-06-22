@@ -1,6 +1,6 @@
 import io
 import re
-from datetime import datetime
+from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin
 
@@ -134,32 +134,27 @@ mesi = {
 }
 
 def estrai_data_nascita(url):
-    headers = {"User-Agent": "Mozilla/5.0"}
 
-    r = requests.get(url, headers=headers, timeout=20)
-    r.raise_for_status()
+    soup = BeautifulSoup(get_html(url), "html.parser")
 
-    soup = BeautifulSoup(r.text, "html.parser")
-    testo = soup.get_text(separator="\n", strip=True)
+    testo = soup.get_text(" ", strip=True)
 
-    pattern = re.compile(
-        r"Nat[oa][^.\n]{0,120}?"
-        r"(\d{1,2})\s+"
+    m = re.search(
+        r"Nat[oa].*?(\d{1,2})\s+"
         r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
-        r"\s+"
-        r"(\d{4})",
-        re.IGNORECASE
+        r"\s+(\d{4})",
+        testo,
+        flags=re.IGNORECASE | re.DOTALL,
     )
 
-    m = pattern.search(testo)
     if not m:
         return None
 
-    giorno = int(m.group(1))
-    mese = mesi[m.group(2).lower()]
-    anno = int(m.group(3))
-
-    return date(anno, mese, giorno)
+    return date(
+        int(m.group(3)),
+        mesi[m.group(2).lower()],
+        int(m.group(1))
+    )
 
 def get_group(name):
     try:
