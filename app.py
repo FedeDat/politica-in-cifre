@@ -460,9 +460,9 @@ if run:
         data_inizio = df.iloc[-1]["Data"]
 
         if data_inizio >= date(2024, 8, 1):
-            legislatura = "Consigliere dal 2024 (Legislatura XII)."
+            legislatura = "Consigliere dal 2024 (Legislatura XII)"
         else:
-            legislatura = "Consigliere dal 2019 (Legislature XI e XII)."
+            legislatura = "Consigliere dal 2019 (Legislature XI e XII)"
         st.write(legislatura)
 
     with col3:
