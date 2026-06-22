@@ -384,7 +384,6 @@ if run:
     with col2:
         st.subheader(selected)
         st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
-            st.write(
         st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** — 🎂 **{eta} anni**")
 
     with col3:
