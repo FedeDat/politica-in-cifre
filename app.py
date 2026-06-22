@@ -457,10 +457,18 @@ if run:
         else:
             st.caption(f"In linea con l'età media del Consiglio ({eta_media} anni)")
 
+        data_inizio = df.iloc[-1]["Data"]
+
+        if data_inizio >= date(2024, 8, 1):
+            legislatura = "XII Legislatura"
+        else:
+            legislatura = "XI-XII Legislatura"
+        st.write(legislatura)
+
     with col3:
         st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
         st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
-        st.metric("Cedolini accessibili dal", df.iloc[-1]["Data"].strftime("%d-%m-%Y"))
+        st.write(f"Cedolini accessibili dal {df.iloc[-1]["Data"].strftime("%d-%m-%Y")}")
     
     with col4:
         st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
