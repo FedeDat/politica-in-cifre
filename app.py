@@ -609,11 +609,11 @@ def pagina_anagrafiche_comune():
 if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
 
-elif pagina == "Anagrafica Consiglieri":
+elif pagina == "Anagrafica Consiglieri Regionali":
     pagina_anagrafiche_regione()
 
 elif pagina == "Trattamento economico":
     pagina_compensi()
 
-elif pagina == "Anagrafica comuni":
+elif pagina == "Anagrafica Comuni":
     pagina_anagrafiche_comune()
