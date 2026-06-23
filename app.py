@@ -363,6 +363,25 @@ def scrape_all_single(name, progress_bar=None, status=None):
     return df, netto_totale, lordo_totale
 
 # =========================
+# Load data (cached) per Consigliature Comunali
+# =========================
+@st.cache_data
+def load_data():
+    base_url = "https://dait.interno.gov.it/documenti/"
+    target_url = "ammcom.csv"
+    csv_url = base_url + target_url
+
+    df = pd.read_csv(
+        csv_url,
+        sep=";",
+        skiprows=2,
+        quotechar='"',
+        encoding="utf-8",
+        low_memory=False
+    )
+    return df
+
+# =========================
 # STREAMLIT UI
 # =========================
 
@@ -604,7 +623,170 @@ def pagina_anagrafiche_comune():
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
     st.write("Dati estratti da https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica.")
     
-    selected = st.selectbox("Seleziona Comune", names)
+    df = load_data()
+    
+    # =========================
+    # Municipality selection (no default city)
+    # =========================
+    comuni = sorted(df["denominazione_comune"].dropna().unique())
+    
+    comune = st.selectbox(
+        "Seleziona o digita il Comune",
+        options=comuni
+    )
+    
+    # =========================
+    # Filter
+    # =========================
+    df_comune = df.loc[df["denominazione_comune"].eq(comune)].copy()
+    
+    if df_comune.empty:
+        st.warning("Nessun dato disponibile per il comune selezionato.")
+        st.stop()
+    
+    # =========================
+    # Dates and age
+    # =========================
+    df_comune["data_nascita"] = pd.to_datetime(
+        df_comune["data_nascita"],
+        dayfirst=True,
+        errors="coerce"
+    )
+    
+    oggi = pd.Timestamp.today().normalize()
+    
+    df_comune["eta"] = (
+        oggi.year
+        - df_comune["data_nascita"].dt.year
+        - (
+            (oggi.month < df_comune["data_nascita"].dt.month)
+            | (
+                (oggi.month == df_comune["data_nascita"].dt.month)
+                & (oggi.day < df_comune["data_nascita"].dt.day)
+            )
+        )
+    ).astype("Int64")
+    
+    # =========================
+    # Role handling
+    # =========================
+    df_comune["ruolo"] = df_comune["descrizione_carica"]
+    
+    mask = (
+        df_comune["descrizione_carica"].eq("Assessore")
+        & df_comune["incarico"].fillna("").str.contains("vicesindaco", case=False)
+    )
+    
+    df_comune.loc[mask, "ruolo"] = "Vicesindaco"
+    
+    # =========================
+    # Subsets
+    # =========================
+    sindaco = df_comune[df_comune["ruolo"] == "Sindaco"]
+    giunta = df_comune[df_comune["ruolo"].isin(["Sindaco", "Vicesindaco", "Assessore"])]
+    consiglio = df_comune[df_comune["ruolo"].str.contains("Consigliere", na=False)]
+    
+    # =========================
+    # Safe indicators
+    # =========================
+    eta_sindaco = sindaco["eta"].iloc[0] if not sindaco.empty else None
+    sesso_sindaco = sindaco["sesso"].iloc[0] if not sindaco.empty else None
+    
+    eta_media_giunta = giunta["eta"].mean()
+    eta_media_consiglio = consiglio["eta"].mean()
+    
+    
+    def percentuali_sesso(df_tmp):
+        if df_tmp.empty:
+            return {"uomini": 0, "donne": 0}
+    
+        p = df_tmp["sesso"].value_counts(normalize=True).mul(100)
+        return {
+            "uomini": round(p.get("M", 0), 1),
+            "donne": round(p.get("F", 0), 1),
+        }
+    
+    
+    def percentuale_under_35(df_tmp):
+        if df_tmp.empty:
+            return 0.0
+        return round((df_tmp["eta"] < 35).mean() * 100, 1)
+    
+    
+    perc_giunta = percentuali_sesso(giunta)
+    perc_consiglio = percentuali_sesso(consiglio)
+    
+    under35_giunta = percentuale_under_35(giunta)
+    under35_consiglio = percentuale_under_35(consiglio)
+    
+    # =========================
+    # ROLE ORDER
+    # =========================
+    ordine_ruoli = {
+        "Sindaco": 0,
+        "Vicesindaco": 1,
+        "Assessore": 2,
+    }
+    
+    df_comune["ruolo_ordine"] = df_comune["ruolo"].map(ordine_ruoli).fillna(3)
+    
+    # =========================
+    # Clean table
+    # =========================
+    df_comune["nome"] = df_comune["nome"].str.title()
+    df_comune["cognome"] = df_comune["cognome"].str.title()
+    
+    df_ridotto = (
+        df_comune[
+            [
+                "nome",
+                "cognome",
+                "ruolo",
+                "sesso",
+                "eta",
+                "lista_appartenenza/collegamento",
+                "ruolo_ordine",
+            ]
+        ]
+        .rename(
+            columns={
+                "lista_appartenenza/collegamento": "Gruppo consiliare",
+                "nome": "Nome",
+                "cognome": "Cognome",
+                "ruolo": "Carica",
+                "sesso": "Genere",
+                "eta": "Età",
+            }
+        )
+        .sort_values(by=["ruolo_ordine", "Cognome", "Nome"], ignore_index=True)
+        .drop(columns=["ruolo_ordine"])
+    )
+    
+    # =========================
+    # STREAMLIT OUTPUT
+    # =========================
+    st.subheader(f"Comune selezionato: {comune}")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    col1.metric("Età sindaco", eta_sindaco if eta_sindaco is not None else "N/D")
+    col2.metric("Genere sindaco", sesso_sindaco if sesso_sindaco is not None else "N/D")
+    col3.metric("Età media giunta", f"{eta_media_giunta:.1f}" if pd.notna(eta_media_giunta) else "N/D")
+    
+    st.write("### Statistiche")
+    
+    st.write(
+        f"Giunta: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne"
+    )
+    st.write(
+        f"Consiglio: {perc_consiglio['uomini']}% uomini - {perc_consiglio['donne']}% donne"
+    )
+    
+    st.write(f"Giunta under 35: {under35_giunta}%")
+    st.write(f"Consiglio under 35: {under35_consiglio}%")
+    
+    st.write("### Tabella componenti")
+    st.dataframe(df_ridotto, use_container_width=True, hide_index=True)
 
 if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
