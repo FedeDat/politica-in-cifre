@@ -866,9 +866,25 @@ def pagina_anagrafiche_comune():
     # =========================
     # Subsets
     # =========================
-    sindaco = df_comune[df_comune["ruolo"] == "Sindaco"]
-    giunta = df_comune[df_comune["ruolo"].isin(["Sindaco", "Vicesindaco", "Assessore"])]
-    consiglio = df_comune[df_comune["ruolo"].str.contains("Consigliere", na=False)]
+
+    subset = ["denominazione_comune", "cognome", "nome"]
+    
+    subset = ["denominazione_comune", "cognome", "nome"]
+    
+    sindaco = (
+        df_comune[df_comune["ruolo"] == "Sindaco"]
+        .drop_duplicates(subset=subset)
+    )
+    
+    giunta = (
+        df_comune[df_comune["ruolo"].isin(["Sindaco", "Vicesindaco", "Assessore"])]
+        .drop_duplicates(subset=subset)
+    )
+    
+    consiglio = (
+        df_comune[df_comune["ruolo"].str.contains("Consigliere", na=False)]
+        .drop_duplicates(subset=subset)
+    )
     
     # =========================
     # Safe indicators
