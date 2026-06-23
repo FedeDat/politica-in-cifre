@@ -760,6 +760,7 @@ def pagina_anagrafiche_comune():
         )
         .sort_values(by=["ruolo_ordine", "Cognome", "Nome"], ignore_index=True)
         .drop(columns=["ruolo_ordine"])
+        .assign(**{"Gruppo consiliare": lambda x: x["Gruppo consiliare"].fillna("Non indicato")})
     )
     
     # =========================
