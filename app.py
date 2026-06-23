@@ -767,7 +767,7 @@ def pagina_anagrafiche_comune():
     # =========================
     st.subheader(f"Comune selezionato: {comune}")
     
-    col1, col2, col3, col4 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     col1.metric("Età Sindaco", eta_sindaco if eta_sindaco is not None else "N/D")
     col2.metric("Genere Sindaco", sesso_sindaco if sesso_sindaco is not None else "N/D")
