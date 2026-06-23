@@ -368,7 +368,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
 st.set_page_config(page_title="Politica in cifre", layout="wide")
 
-st.title("🏛️ La politica italian in cifre")
+st.title("🏛️ La politica italiana in cifre")
 
 @st.cache_data(show_spinner=False)
 def get_councillors():
@@ -390,9 +390,9 @@ st.sidebar.title("Navigazione")
 pagina = st.sidebar.selectbox(
     "Seleziona sezione",
     [
-        "Analizzatore Cedolini Consiglieri Regionali",
-        "Anagrafica Consiglieri Regionali",
-        "Trattamento economico dei Compensi"
+        "Analizzatore Cedolini",
+        "Anagrafica Consiglieri",
+        "Trattamento economico"
     ]
 )
 
@@ -522,52 +522,53 @@ def pagina_anagrafiche():
     )
 
 def pagina_compensi():
-    # Titolo principale trasformato in subheader
+
+# Titolo principale
     st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
-    
-    st.write("La disciplina del trattamento economico dei Consiglieri con gli importi per voci disglossate è tratta dal link: https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di.")
-    
+
+    st.write(
+        "La disciplina del trattamento economico dei Consiglieri con gli importi per voci disaggregate "
+        "è tratta dal link: "
+        "https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di."
+    )
+
     # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
     st.markdown("**1. Voci Principali del Trattamento Economico**")
 
-    
-    df_funzioni = pd.DataFrame(dati_funzioni)
-    st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
-    
     dati_generali = {
         "Voce Economica": [
-            "Indennità di carica", 
-            "Rimborso Spese Mandato", 
-            "Indennità Fine Mandato", 
+            "Indennità di carica",
+            "Rimborso Spese Mandato",
+            "Indennità Fine Mandato",
             "Assegno Vitalizio"
         ],
         "Importo / Regola": [
-            "€ 5.000,00 lordi mensili", 
-            "€ 3.500,00 fissi mensili", 
-            "Ultima mensilità lorda × anni di mandato", 
+            "€ 5.000,00 lordi mensili",
+            "€ 3.500,00 fissi mensili",
+            "Ultima mensilità lorda × anni di mandato",
             "Abrogato dalla X legislatura"
         ],
         "Tassazione IRPEF": [
-            "Sì (Interamente assoggettata)", 
-            "No (Detassato ex art. 52 TUIR)", 
-            "Secondo normativa vigente", 
+            "Sì (Interamente assoggettata)",
+            "No (Detassato ex art. 52 TUIR)",
+            "Secondo normativa vigente",
             "Soggetto a ricalcolo contributivo"
         ],
         "Note / Penali": [
-            "Valido per membri Consiglio e Giunta", 
-            "Taglio di € 150 per ogni assenza ingiustificata", 
-            "Massimo 10 anni anche non consecutivi", 
+            "Valido per membri Consiglio e Giunta",
+            "Taglio di € 150 per ogni assenza ingiustificata",
+            "Massimo 10 anni anche non consecutivi",
             "Solo per legislature precedenti alla X"
         ]
     }
-    
+
     df_generale = pd.DataFrame(dati_generali)
     st.dataframe(df_generale, use_container_width=True, hide_index=True)
 
     # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
     st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
     st.write("Importi lordi mensili cumulabili in base alla carica ricoperta:")
-    
+
     dati_funzioni = {
         "Carica Ricoperta": [
             "Presidente della Giunta regionale",
@@ -595,11 +596,14 @@ def pagina_compensi():
         ]
     }
 
-if pagina == "Analizzatore Cedolini Consiglieri Regionali":
+    df_funzioni = pd.DataFrame(dati_funzioni)
+    st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
+
+if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
 
-elif pagina == "Anagrafica Consiglieri Regionali":
+elif pagina == "Anagrafica Consiglieri":
     pagina_anagrafiche()
 
-elif pagina == "Trattamento economico dei Compensi":
+elif pagina == "Trattamento economico":
     pagina_compensi()
