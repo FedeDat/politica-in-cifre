@@ -385,146 +385,141 @@ eta_media = round(df_birth["Età"].mean())
 
 names = df_list["Nominativo"].tolist()
 
-st.header("🏛️ Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
-
-st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
-
-st.subheader("📊 Analizzatore dei Cedolini")
-
-selected = st.selectbox("Seleziona Consigliere", names)
-
-run = st.button("Analizza i cedolini", type="primary")
-
-if run:
-
-    progress = st.progress(0)
-    status = st.empty()
-
-    df, netto_totale, lordo_totale = scrape_all_single(selected, progress, status)
-
-    progress.empty()
-    status.empty()
-
-    if df.empty:
-        st.warning("Nessun dato trovato")
-        st.stop()
-
-    st.success(f"Cedolini trovati: {len(df)}")
-    
-    # =========================
-    # 🧑 INFO CONSIGLIERE
-    # =========================
-
-    photo = get_photo(find_profile(selected))
-    group = get_group(selected)
-
-    votes, preferences = get_presences(selected)
-
-    data_nascita = estrai_data_nascita(find_profile(selected))
-
-    if data_nascita:
-        oggi = date.today()
-
-        eta = (
-            oggi.year
-            - data_nascita.year
-            - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
-        )
-
-    # Età media del Consiglio
-    eta_media = round(df_birth["Età"].mean())
-
-    # Scostamento dalla media
-    differenza = eta - eta_media
-    
-    col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
-
-    with col1:
-        if photo:
-            st.image(photo, width=180)
-        else:
-            st.info("Foto non disponibile")
-
-    with col2:
-        st.subheader(selected)
-        st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
-        st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** - 🎂 **{eta} anni**")
-
-        if differenza > 0:
-            st.write(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
-        elif differenza < 0:
-            st.write(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
-        else:
-            st.write(f"In linea con l'età media del Consiglio ({eta_media} anni)")
-
-        data_inizio = df.iloc[-1]["Data"]
-
-        if data_inizio >= date(2024, 8, 1):
-            legislatura = "Consigliere dal 2024 (Legislatura XII)"
-        else:
-            legislatura = "Consigliere dal 2019 (Legislature XI e XII)"
-        st.write(legislatura)
-
-    with col3:
-        st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
-        st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
-        st.write(f"Cedolini accessibili dal {df.iloc[-1]["Data"].strftime("%d-%m-%Y")}")
-    
-    with col4:
-        st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
-        st.metric("Partecipazione alle sedute (XII Legislatura)", f"{preferences}%")
-
-    st.divider()
-
-    st.dataframe(
-    df,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Cedolino": st.column_config.LinkColumn(
-            "Cedolino PDF"
-        )
-    }
-)
-
-    # =========================
-    # CHART
-    # =========================
-
-    df["Data"] = pd.to_datetime(df["Data"])
-    df["Mese"] = df["Data"].dt.to_period("M").astype(str)
-
-    monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
-
-    st.markdown("**Rimborso mensile (Netto)**")
-    st.bar_chart(monthly.set_index("Mese"))
-
-st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
-st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
-
-st.dataframe(
-    df_birth,
-    use_container_width=True,
-    hide_index=True
-)
-
 st.sidebar.title("Navigazione")
 
 pagina = st.sidebar.selectbox(
     "Seleziona sezione",
     [
-        "Cedolini",
-        "Consiglieri",
-        "Compensi"
+        "Analizzatore Cedolini Consiglieri Regionali",
+        "Anagrafica Consiglieri Regionali",
+        "Trattamento economico dei Compensi"
     ]
 )
 
 def pagina_cedolini():
-    st.subheader("📊 Analizzatore Cedolini")
+    st.header("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
+
+    st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
     
+    st.subheader("📊 Analizzatore dei Cedolini")
+    
+    selected = st.selectbox("Seleziona Consigliere", names)
+    
+    run = st.button("Analizza i cedolini", type="primary")
+    
+    if run:
+    
+        progress = st.progress(0)
+        status = st.empty()
+    
+        df, netto_totale, lordo_totale = scrape_all_single(selected, progress, status)
+    
+        progress.empty()
+        status.empty()
+    
+        if df.empty:
+            st.warning("Nessun dato trovato")
+            st.stop()
+    
+        st.success(f"Cedolini trovati: {len(df)}")
+        
+        # =========================
+        # 🧑 INFO CONSIGLIERE
+        # =========================
+    
+        photo = get_photo(find_profile(selected))
+        group = get_group(selected)
+    
+        votes, preferences = get_presences(selected)
+    
+        data_nascita = estrai_data_nascita(find_profile(selected))
+    
+        if data_nascita:
+            oggi = date.today()
+    
+            eta = (
+                oggi.year
+                - data_nascita.year
+                - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
+            )
+    
+        # Età media del Consiglio
+        eta_media = round(df_birth["Età"].mean())
+    
+        # Scostamento dalla media
+        differenza = eta - eta_media
+        
+        col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
+    
+        with col1:
+            if photo:
+                st.image(photo, width=180)
+            else:
+                st.info("Foto non disponibile")
+    
+        with col2:
+            st.subheader(selected)
+            st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
+            st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** - 🎂 **{eta} anni**")
+    
+            if differenza > 0:
+                st.write(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
+            elif differenza < 0:
+                st.write(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
+            else:
+                st.write(f"In linea con l'età media del Consiglio ({eta_media} anni)")
+    
+            data_inizio = df.iloc[-1]["Data"]
+    
+            if data_inizio >= date(2024, 8, 1):
+                legislatura = "Consigliere dal 2024 (Legislatura XII)"
+            else:
+                legislatura = "Consigliere dal 2019 (Legislature XI e XII)"
+            st.write(legislatura)
+    
+        with col3:
+            st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
+            st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
+            st.write(f"Cedolini accessibili dal {df.iloc[-1]["Data"].strftime("%d-%m-%Y")}")
+        
+        with col4:
+            st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
+            st.metric("Partecipazione alle sedute (XII Legislatura)", f"{preferences}%")
+    
+        st.divider()
+    
+        st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Cedolino": st.column_config.LinkColumn(
+                "Cedolino PDF"
+            )
+        }
+    )
+    
+        # =========================
+        # CHART
+        # =========================
+    
+        df["Data"] = pd.to_datetime(df["Data"])
+        df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+    
+        monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
+    
+        st.markdown("**Rimborso mensile (Netto)**")
+        st.bar_chart(monthly.set_index("Mese"))
+
 def pagina_anagrafiche():
-    st.subheader("👥 Consiglieri Regionali")
-    st.dataframe(df_birth, use_container_width=True)
+    st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
+    st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
+    
+    st.dataframe(
+        df_birth,
+        use_container_width=True,
+        hide_index=True
+    )
 
 def pagina_compensi():
     # Titolo principale trasformato in subheader
@@ -600,11 +595,11 @@ def pagina_compensi():
         ]
     }
 
-if pagina == "Cedolini":
+if pagina == "Analizzatore Cedolini Consiglieri Regionali":
     pagina_cedolini()
 
-elif pagina == "Consiglieri":
+elif pagina == "Anagrafica Consiglieri Regionali":
     pagina_anagrafiche()
 
-elif pagina == "Compensi":
+elif pagina == "Trattamento economico dei Compensi":
     pagina_compensi()
