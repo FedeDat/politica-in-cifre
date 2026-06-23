@@ -580,3 +580,23 @@ dati_funzioni = {
 
 df_funzioni = pd.DataFrame(dati_funzioni)
 st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
+
+st.sidebar.title("Navigazione")
+
+pagina = st.sidebar.selectbox(
+    "Seleziona sezione",
+    [
+        "Cedolini",
+        "Consiglieri",
+        "Compensi"
+    ]
+)
+
+if pagina == "Cedolini":
+    pagina_cedolini()
+
+elif pagina == "Consiglieri":
+    pagina_anagrafiche()
+
+elif pagina == "Compensi":
+    pagina_compensi()
