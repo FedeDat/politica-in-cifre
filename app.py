@@ -767,20 +767,26 @@ def pagina_anagrafiche_comune():
     # =========================
     st.subheader(f"Comune selezionato: {comune}")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(3)
     
-    col1.metric("Età sindaco", eta_sindaco if eta_sindaco is not None else "N/D")
-    col2.metric("Genere sindaco", sesso_sindaco if sesso_sindaco is not None else "N/D")
-    col3.metric("Età media giunta", f"{eta_media_giunta:.1f}" if pd.notna(eta_media_giunta) else "N/D")
+    col1.metric("Età Sindaco", eta_sindaco if eta_sindaco is not None else "N/D")
+    col2.metric("Genere Sindaco", sesso_sindaco if sesso_sindaco is not None else "N/D")
+    col3.metric("Età media Giunta", f"{eta_media_giunta:.1f}" if pd.notna(eta_media_giunta) else "N/D")
+    col4.metric("Età media Consiglio", f"{eta_media_consiglio:.1f}" if pd.notna(eta_media_consiglio) else "N/D")
     
-    st.write("### Statistiche")
+    st.write("### Parità di Genere")
     
-    st.write(
-        f"Giunta: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne"
-    )
-    st.write(
-        f"Consiglio: {perc_consiglio['uomini']}% uomini - {perc_consiglio['donne']}% donne"
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write(
+            f"Giunta: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne"
+        )
+    
+    with col2:
+        st.write(
+            f"Consiglio: {perc_consiglio['uomini']}% uomini - {perc_consiglio['donne']}% donne"
+        )
     
     st.write(f"Giunta under 35: {under35_giunta}%")
     st.write(f"Consiglio under 35: {under35_consiglio}%")
