@@ -508,9 +508,6 @@ st.dataframe(
     hide_index=True
 )
 
-df_funzioni = pd.DataFrame(dati_funzioni)
-st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
-
 st.sidebar.title("Navigazione")
 
 pagina = st.sidebar.selectbox(
@@ -537,6 +534,10 @@ def pagina_compensi():
     
     # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
     st.markdown("**1. Voci Principali del Trattamento Economico**")
+
+    
+    df_funzioni = pd.DataFrame(dati_funzioni)
+    st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
     
     dati_generali = {
         "Voce Economica": [
