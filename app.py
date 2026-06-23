@@ -519,12 +519,12 @@ pagina = st.sidebar.selectbox(
     ]
 )
 
-#def pagina_cedolini():
-#    st.subheader("📊 Analizzatore Cedolini")
+def pagina_cedolini():
+    st.subheader("📊 Analizzatore Cedolini")
     
-#def pagina_anagrafiche():
-#    st.subheader("👥 Consiglieri Regionali")
-#    st.dataframe(df_birth, use_container_width=True)
+def pagina_anagrafiche():
+    st.subheader("👥 Consiglieri Regionali")
+    st.dataframe(df_birth, use_container_width=True)
 
 def pagina_compensi():
     # Titolo principale trasformato in subheader
