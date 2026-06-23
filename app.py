@@ -923,6 +923,7 @@ def pagina_anagrafiche_comune():
     df_ridotto = (
         df_comune[
             [
+                "denominazione_comune",
                 "nome",
                 "cognome",
                 "ruolo",
@@ -932,6 +933,16 @@ def pagina_anagrafiche_comune():
                 "ruolo_ordine",
             ]
         ]
+        .groupby(["denominazione_comune", "cognome", "nome"], as_index=False)
+        .agg(
+            {
+                "ruolo": "first",
+                "sesso": "first",
+                "eta": "first",
+                "ruolo_ordine": "first",
+                "lista_appartenenza/collegamento": lambda s: s.dropna().iloc[0] if not s.dropna().empty else None,
+            }
+        )
         .rename(
             columns={
                 "lista_appartenenza/collegamento": "Gruppo consiliare",
@@ -943,8 +954,12 @@ def pagina_anagrafiche_comune():
             }
         )
         .sort_values(by=["ruolo_ordine", "Cognome", "Nome"], ignore_index=True)
-        .drop(columns=["ruolo_ordine"])
-        .assign(**{"Gruppo consiliare": lambda x: x["Gruppo consiliare"].fillna("Non indicato")})
+        .drop(columns=["denominazione_comune", "ruolo_ordine"])
+        .assign(
+            **{
+                "Gruppo consiliare": lambda x: x["Gruppo consiliare"].fillna("Non indicato")
+            }
+        )
     )
     
     # =========================
