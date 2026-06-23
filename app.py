@@ -391,17 +391,16 @@ pagina = st.sidebar.selectbox(
     "Seleziona sezione",
     [
         "Analizzatore Cedolini",
-        "Anagrafica Consiglieri",
-        "Trattamento economico"
+        "Anagrafica Consiglieri Regionali",
+        "Trattamento economico",
+        "Anagrafica Comuni"
     ]
 )
 
 def pagina_cedolini():
-    st.header("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
+    st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
     st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
-    
-    st.subheader("📊 Analizzatore dei Cedolini")
     
     selected = st.selectbox("Seleziona Consigliere", names)
     
@@ -511,7 +510,7 @@ def pagina_cedolini():
         st.markdown("**Rimborso mensile (Netto)**")
         st.bar_chart(monthly.set_index("Mese"))
 
-def pagina_anagrafiche():
+def pagina_anagrafiche_regione():
     st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
     st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
     
@@ -599,11 +598,22 @@ def pagina_compensi():
     df_funzioni = pd.DataFrame(dati_funzioni)
     st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
 
+def pagina_anagrafiche_comune():
+    st.subheader("📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al 6 giugno 2026)", divider=True)
+
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
+    st.write("Dati estratti da https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica.")
+    
+    selected = st.selectbox("Seleziona Comune", names)
+
 if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
 
 elif pagina == "Anagrafica Consiglieri":
-    pagina_anagrafiche()
+    pagina_anagrafiche_regione()
 
 elif pagina == "Trattamento economico":
     pagina_compensi()
+
+elif pagina == "Anagrafica comuni":
+    pagina_anagrafiche_comune()
