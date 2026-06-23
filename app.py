@@ -529,6 +529,82 @@ def pagina_cedolini():
         st.markdown("**Rimborso mensile (Netto)**")
         st.bar_chart(monthly.set_index("Mese"))
 
+        # Titolo principale
+        st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
+    
+        st.write(
+            "La disciplina del trattamento economico dei Consiglieri con gli importi per voci disaggregate "
+            "è tratta dal link: "
+            "https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di."
+        )
+    
+        # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
+        st.markdown("**1. Voci Principali del Trattamento Economico**")
+    
+        dati_generali = {
+            "Voce Economica": [
+                "Indennità di carica",
+                "Rimborso Spese Mandato",
+                "Indennità Fine Mandato",
+                "Assegno Vitalizio"
+            ],
+            "Importo / Regola": [
+                "€ 5.000,00 lordi mensili",
+                "€ 3.500,00 fissi mensili",
+                "Ultima mensilità lorda × anni di mandato",
+                "Abrogato dalla X legislatura"
+            ],
+            "Tassazione IRPEF": [
+                "Sì (Interamente assoggettata)",
+                "No (Detassato ex art. 52 TUIR)",
+                "Secondo normativa vigente",
+                "Soggetto a ricalcolo contributivo"
+            ],
+            "Note / Penali": [
+                "Valido per membri Consiglio e Giunta",
+                "Taglio di € 150 per ogni assenza ingiustificata",
+                "Massimo 10 anni anche non consecutivi",
+                "Solo per legislature precedenti alla X"
+            ]
+        }
+    
+        df_generale = pd.DataFrame(dati_generali)
+        st.dataframe(df_generale, use_container_width=True, hide_index=True)
+    
+        # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
+        st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
+        st.write("Importi lordi mensili cumulabili in base alla carica ricoperta:")
+    
+        dati_funzioni = {
+            "Carica Ricoperta": [
+                "Presidente della Giunta regionale",
+                "Presidente del Consiglio regionale",
+                "Vicepresidente della Giunta regionale",
+                "Vicepresidenti del Consiglio regionale",
+                "Assessori regionali",
+                "Presidenti di Gruppo consiliare",
+                "Consiglieri segretari Ufficio di Presidenza",
+                "Presidenti Commissioni Permanenti / Speciali / Giunte",
+                "Vicepresidenti Commissioni Permanenti / Speciali / Giunte",
+                "Consiglieri segretario della Giunta per le elezioni"
+            ],
+            "Importo Lordo Mensile": [
+                "€ 1.700,00",
+                "€ 1.700,00",
+                "€ 1.250,00",
+                "€ 1.250,00",
+                "€ 1.250,00",
+                "€ 1.000,00",
+                "€ 750,00",
+                "€ 750,00",
+                "€ 600,00",
+                "€ 600,00"
+            ]
+        }
+
+        df_funzioni = pd.DataFrame(dati_funzioni)
+        st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
+
 def pagina_anagrafiche_regione():
     st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
     st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
@@ -538,84 +614,6 @@ def pagina_anagrafiche_regione():
         use_container_width=True,
         hide_index=True
     )
-
-def pagina_compensi():
-
-# Titolo principale
-    st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
-
-    st.write(
-        "La disciplina del trattamento economico dei Consiglieri con gli importi per voci disaggregate "
-        "è tratta dal link: "
-        "https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di."
-    )
-
-    # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
-    st.markdown("**1. Voci Principali del Trattamento Economico**")
-
-    dati_generali = {
-        "Voce Economica": [
-            "Indennità di carica",
-            "Rimborso Spese Mandato",
-            "Indennità Fine Mandato",
-            "Assegno Vitalizio"
-        ],
-        "Importo / Regola": [
-            "€ 5.000,00 lordi mensili",
-            "€ 3.500,00 fissi mensili",
-            "Ultima mensilità lorda × anni di mandato",
-            "Abrogato dalla X legislatura"
-        ],
-        "Tassazione IRPEF": [
-            "Sì (Interamente assoggettata)",
-            "No (Detassato ex art. 52 TUIR)",
-            "Secondo normativa vigente",
-            "Soggetto a ricalcolo contributivo"
-        ],
-        "Note / Penali": [
-            "Valido per membri Consiglio e Giunta",
-            "Taglio di € 150 per ogni assenza ingiustificata",
-            "Massimo 10 anni anche non consecutivi",
-            "Solo per legislature precedenti alla X"
-        ]
-    }
-
-    df_generale = pd.DataFrame(dati_generali)
-    st.dataframe(df_generale, use_container_width=True, hide_index=True)
-
-    # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
-    st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
-    st.write("Importi lordi mensili cumulabili in base alla carica ricoperta:")
-
-    dati_funzioni = {
-        "Carica Ricoperta": [
-            "Presidente della Giunta regionale",
-            "Presidente del Consiglio regionale",
-            "Vicepresidente della Giunta regionale",
-            "Vicepresidenti del Consiglio regionale",
-            "Assessori regionali",
-            "Presidenti di Gruppo consiliare",
-            "Consiglieri segretari Ufficio di Presidenza",
-            "Presidenti Commissioni Permanenti / Speciali / Giunte",
-            "Vicepresidenti Commissioni Permanenti / Speciali / Giunte",
-            "Consiglieri segretario della Giunta per le elezioni"
-        ],
-        "Importo Lordo Mensile": [
-            "€ 1.700,00",
-            "€ 1.700,00",
-            "€ 1.250,00",
-            "€ 1.250,00",
-            "€ 1.250,00",
-            "€ 1.000,00",
-            "€ 750,00",
-            "€ 750,00",
-            "€ 600,00",
-            "€ 600,00"
-        ]
-    }
-
-    df_funzioni = pd.DataFrame(dati_funzioni)
-    st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
 
 def pagina_anagrafiche_comune():
     st.subheader("📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al 6 giugno 2026)", divider=True)
@@ -811,9 +809,6 @@ if pagina == "Analizzatore Cedolini":
 
 elif pagina == "Anagrafica Consiglieri Regionali":
     pagina_anagrafiche_regione()
-
-elif pagina == "Trattamento economico":
-    pagina_compensi()
 
 elif pagina == "Anagrafica Comuni":
     pagina_anagrafiche_comune()
