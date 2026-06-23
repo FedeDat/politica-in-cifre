@@ -434,6 +434,7 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
         assessore = (4562.12, 8970.00)
         pres_consiglio = (4562.12, 8970.00)
         cons_gettone = (92.96, 92.96)
+        cons_max = (1754.66, 3450.00)
 
     # 2. CAPOLUOGHI DI REGIONE
     elif comune_selezionato in CAPOLUOGHI_REGIONE:
@@ -442,6 +443,7 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
         assessore = (4562.12, 7176.00)
         pres_consiglio = (4562.12, 7176.00)
         cons_gettone = (53.45, 53.45)
+        cons_max = (1754.66, 2760.00)
 
     # 3. CAPOLUOGHI DI PROVINCIA
     elif comune_selezionato in CAPOLUOGHI_PROVINCIA:
@@ -451,18 +453,21 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
             assessore = (2231.09, 5796.00)
             pres_consiglio = (2231.09, 5796.00)
             cons_gettone = (32.53, 32.53)
+            cons_max = (929.62, 1552.50)
         elif 50001 <= popolazione <= 100000:
             sindaco = (4508.67, 9660.00)
             vicesindaco = (3381.50, 7245.00)
             assessore = (2705.20, 5796.00)
             pres_consiglio = (2705.20, 5796.00)
             cons_gettone = (32.53, 32.53)
+            cons_max = (1127.17, 1552.50)
         else:
             sindaco = (5205.89, 11040.00)
             vicesindaco = (3904.42, 8280.00)
             assessore = (3383.83, 7176.00)
             pres_consiglio = (3383.83, 7176.00)
             cons_gettone = (32.53, 32.53)
+            cons_max = (1301.47, 2760.00)
 
     # 4. COMUNI ORDINARI
     else:
@@ -472,66 +477,76 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
             assessore = (116.20, 220.80)
             pres_consiglio = (58.10, 110.40)
             cons_gettone = (15.34, 15.34)
+            cons_max = (414.84, 552.00)
         elif 1001 <= popolazione <= 3000:
             sindaco = (1659.38, 2208.00)
             vicesindaco = (260.30, 441.60)
             assessore = (195.22, 331.20)
             pres_consiglio = (130.15, 220.80)
             cons_gettone = (15.34, 15.34)
+            cons_max = (414.84, 552.00)
         elif 3001 <= popolazione <= 5000:
             sindaco = (1952.21, 3036.00)
             vicesindaco = (390.44, 607.20)
             assessore = (292.83, 455.40)
             pres_consiglio = (195.22, 303.60)
             cons_gettone = (16.27, 16.27)
+            cons_max = (488.05, 759.00)
         elif 5001 <= popolazione <= 10000:
             sindaco = (2509.98, 4002.00)
             vicesindaco = (1254.99, 2001.00)
             assessore = (1129.49, 1800.90)
             pres_consiglio = (251.00, 400.20)
             cons_gettone = (16.27, 16.27)
+            cons_max = (627.22, 1000.50)
         elif 10001 <= popolazione <= 15000:
             sindaco = (2788.87, 4140.00)
             vicesindaco = (1533.88, 2277.00)
             assessore = (1254.99, 1863.00)
             pres_consiglio = (251.00, 400.20)
             cons_gettone = (19.99, 19.99)
+            cons_max = (697.22, 1035.50)
         elif 15001 <= popolazione <= 30000:
             sindaco = (2788.87, 4140.00)
             vicesindaco = (1533.88, 2277.00)
             assessore = (1254.99, 1863.00)
             pres_consiglio = (1254.99, 1863.00)
             cons_gettone = (19.99, 19.99)
+            cons_max = (697.22, 1035.50)
         elif 30001 <= popolazione <= 50000:
             sindaco = (3114.23, 4830.00)
             vicesindaco = (1712.83, 2656.50)
             assessore = (1401.40, 2173.50)
             pres_consiglio = (1401.40, 2173.50)
-            cons_gettone = (19.99, 19.99)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (778.56, 1207.50)
         elif 50001 <= popolazione <= 100000:
             sindaco = (3718.49, 6210.00)
             vicesindaco = (2788.87, 4657.50)
             assessore = (2231.09, 3726.00)
             pres_consiglio = (2231.09, 3726.00)
             cons_gettone = (32.53, 32.53)
-        elif 10001 <= popolazione <= 250000:
+        elif 100001 <= popolazione <= 250000:
             sindaco = (4508.67, 6210.00)
             vicesindaco = (3381.50, 4657.50)
             assessore = (2705.20, 3726.00)
             pres_consiglio = (2705.20, 3726.00)
             cons_gettone = (32.53, 32.53)
+            cons_max = (1301.47, 2760.00)
         elif 250001 <= popolazione <= 500000:
             sindaco = (4508.67, 6210.00)
             vicesindaco = (3381.50, 4657.50)
             assessore = (2705.20, 3726.00)
             pres_consiglio = (2705.20, 3726.00)
             cons_gettone = (53.45, 53.45)
+            cons_max = (1754.66, 2760.00)
         else:
             sindaco = (7018.65, 13800.00)
             vicesindaco = (5263.99, 10350.00)
             assessore = (4562.12, 8970.00)
             pres_consiglio = (4562.12, 8970.00)
             cons_gettone = (92.96, 92.96)
+            cons_max = (1754.66, 3450.00)
 
     # Formattazione valuta IT
     def fmt(v):
@@ -546,8 +561,8 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
             "Consigliere (gettone di presenza)", 
             "Consigliere (Compenso mensile massimo)"
         ],
-        "Ante 2024": [fmt(sindaco[0]), fmt(vicesindaco[0]), fmt(assessore[0]), fmt(pres_consiglio[0]), fmt(cons_gettone[0]), fmt(cons_gettone[1])],
-        "Attuale": [fmt(sindaco[1]), fmt(vicesindaco[1]), fmt(assessore[1]), fmt(pres_consiglio[1]), fmt(cons_gettone[0]), fmt(cons_gettone[1])]
+        "Ante 2024": [fmt(sindaco[0]), fmt(vicesindaco[0]), fmt(assessore[0]), fmt(pres_consiglio[0]), fmt(cons_gettone[0]), fmt(cons_max[0])],
+        "Attuale": [fmt(sindaco[1]), fmt(vicesindaco[1]), fmt(assessore[1]), fmt(pres_consiglio[1]), fmt(cons_gettone[1]), fmt(cons_max[1])]
     }
     return pd.DataFrame(data)
 
@@ -996,7 +1011,7 @@ def pagina_anagrafiche_comune():
     df_risultato = calcola_indennita_amministratori(popolazione, comune)
     
     st.dataframe(df_risultato, use_container_width=True, hide_index=True)
-    st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti.")
+    st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
 
 
