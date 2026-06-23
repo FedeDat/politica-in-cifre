@@ -837,7 +837,7 @@ def pagina_anagrafiche_comune():
         errors="coerce"
     )
 
-    df_comune.loc[(df_comune["nome"] == "Simone") & (df_comune["cognome"] == "Fissolo") & (df_comune["denominazione_comune"] == "TORINO"),
+    df_comune.loc[(df_comune["nome"] == "SIMONE") & (df_comune["cognome"] == "FISSOLO") & (df_comune["denominazione_comune"] == "TORINO"),
     "data_nascita"] = pd.Timestamp("1989-05-31")
     
     oggi = pd.Timestamp.today().normalize()
