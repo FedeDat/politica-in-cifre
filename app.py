@@ -381,6 +381,172 @@ def load_data():
     )
     return df
 
+# --- ELENCHI UFFICIALI (MAPPATURA DELLE TIPOLOGIE) ---
+CITTA_METROPOLITANE = [
+    "Bari", "Bologna", "Cagliari", "Catania", "Firenze", "Genova", 
+    "Messina", "Milano", "Napoli", "Palermo", "Reggio Calabria", 
+    "Roma", "Torino", "Venezia"
+]
+
+CAPOLUOGHI_REGIONE = [
+    "Ancona", "Aosta", "L'Aquila", "Bari", "Bologna", "Cagliari", "Catanzaro", 
+    "Campobasso", "Firenze", "Genova", "Milano", "Napoli", "Palermo", "Perugia", 
+    "Potenza", "Roma", "Torino", "Trento", "Trieste", "Venezia"
+]
+
+# Elenco esemplificativo dei principali capoluoghi di provincia ordinari (escluse città metropolitane e regionali)
+CAPOLUOGHI_PROVINCIA = [
+    "Alessandria", "Asti", "Biella", "Cuneo", "Novara", "Verbania", "Vercelli",
+    "Bergamo", "Brescia", "Como", "Cremona", "Lecco", "Lodi", "Mantova", "Monza", "Pavia", "Sondrio", "Varese",
+    "Bolzano", "Belluno", "Padova", "Rovigo", "Treviso", "Verona", "Vicenza",
+    "Gorizia", "Pordenone", "Udine", "Imperia", "La Spezia", "Savona",
+    "Ferrara", "Forlì", "Modena", "Parma", "Piacenza", "Ravenna", "Reggio Emilia", "Rimini",
+    "Arezzo", "Grosseto", "Livorno", "Lucca", "Massa", "Pisa", "Pistoia", "Prato", "Siena",
+    "Terni", "Pesaro", "Macerata", "Fermo", "Ascoli Piceno",
+    "Viterbo", "Rieti", "Frosinone", "Latina", "Chieti", "Pescara", "Teramo",
+    "Isernia", "Avellino", "Benevento", "Caserta", "Salerno",
+    "Foggia", "Taranto", "Brindisi", "Lecce", "Andria", "Barletta", "Trani",
+    "Matera", "Cosenza", "Crotone", "Vibo Valentia",
+    "Trapani", "Agrigento", "Caltanissetta", "Enna", "Ragusa", "Siracusa",
+    "Sassari", "Nuoro", "Oristano"
+]
+
+# --- FUNZIONE DI CALCOLO CORE ---
+def calcola_indennita_amministratori(popolazione, comune_selezionato):
+    """
+    Calcola le indennità in base alle tabelle allegate applicando la gerarchia istituzionale:
+    Città Metropolitana -> Capoluogo di Regione -> Capoluogo di Provincia -> Comune Ordinario
+    """
+    sindaco = (0.0, 0.0)
+    vicesindaco = (0.0, 0.0)
+    assessore = (0.0, 0.0)
+    pres_consiglio = (0.0, 0.0)
+    cons_gettone = (0.0, 0.0)
+
+    # 1. CITTÀ METROPOLITANE
+    if comune_selezionato in CITTA_METROPOLITANE:
+        sindaco = (7018.65, 13800.00)
+        vicesindaco = (5263.99, 10350.00)
+        assessore = (4562.12, 8970.00)
+        pres_consiglio = (4562.12, 8970.00)
+        cons_gettone = (92.96, 3450.00)
+
+    # 2. CAPOLUOGHI DI REGIONE
+    elif comune_selezionato in CAPOLUOGHI_REGIONE:
+        sindaco = (7018.65, 11040.00)
+        vicesindaco = (5263.99, 8280.00)
+        assessore = (4562.12, 7176.00)
+        pres_consiglio = (4562.12, 7176.00)
+        cons_gettone = (53.45, 2760.00)
+
+    # 3. CAPOLUOGHI DI PROVINCIA
+    elif comune_selezionato in CAPOLUOGHI_PROVINCIA:
+        if popolazione <= 50000:
+            sindaco = (3718.49, 9660.00)
+            vicesindaco = (2788.87, 7245.00)
+            assessore = (2231.09, 5796.00)
+            pres_consiglio = (2231.09, 5796.00)
+            cons_gettone = (32.53, 1552.50)
+        elif 50001 <= popolazione <= 100000:
+            sindaco = (4508.67, 9660.00)
+            vicesindaco = (3381.50, 7245.00)
+            assessore = (2705.20, 5796.00)
+            pres_consiglio = (2705.20, 5796.00)
+            cons_gettone = (32.53, 1552.50)
+        else:
+            sindaco = (5205.89, 11040.00)
+            vicesindaco = (3904.42, 8280.00)
+            assessore = (3383.83, 7176.00)
+            pres_consiglio = (3383.83, 7176.00)
+            cons_gettone = (32.53, 2760.00)
+
+    # 4. COMUNI ORDINARI
+    else:
+        if popolazione <= 1000:
+            sindaco = (1659.38, 2208.00)
+            vicesindaco = (174.30, 331.20)
+            assessore = (116.20, 220.80)
+            pres_consiglio = (58.10, 110.40)
+            cons_gettone = (15.34, 552.00)
+        elif 1001 <= popolazione <= 3000:
+            sindaco = (1659.38, 2208.00)
+            vicesindaco = (260.30, 441.60)
+            assessore = (195.22, 331.20)
+            pres_consiglio = (130.15, 220.80)
+            cons_gettone = (15.34, 552.00)
+        elif 3001 <= popolazione <= 5000:
+            sindaco = (1952.21, 3036.00)
+            vicesindaco = (390.44, 607.20)
+            assessore = (292.83, 455.40)
+            pres_consiglio = (195.22, 303.60)
+            cons_gettone = (16.27, 759.00)
+        elif 5001 <= popolazione <= 10000:
+            sindaco = (2509.98, 4002.00)
+            vicesindaco = (1254.99, 2001.00)
+            assessore = (1129.49, 1800.90)
+            pres_consiglio = (251.00, 400.20)
+            cons_gettone = (16.27, 1000.50)
+        elif 10001 <= popolazione <= 15000:
+            sindaco = (2788.87, 4140.00)
+            vicesindaco = (1533.88, 2277.00)
+            assessore = (1254.99, 1863.00)
+            pres_consiglio = (251.00, 400.20)
+            cons_gettone = (19.99, 1035.00)
+        elif 15001 <= popolazione <= 30000:
+            sindaco = (2788.87, 4140.00)
+            vicesindaco = (1533.88, 2277.00)
+            assessore = (1254.99, 1863.00)
+            pres_consiglio = (1254.99, 1863.00)
+            cons_gettone = (19.99, 1035.00)
+        elif 30001 <= popolazione <= 50000:
+            sindaco = (3114.23, 4830.00)
+            vicesindaco = (1712.83, 2656.50)
+            assessore = (1401.40, 2173.50)
+            pres_consiglio = (1401.40, 2173.50)
+            cons_gettone = (19.99, 1207.50)
+        elif 50001 <= popolazione <= 100000:
+            sindaco = (3718.49, 6210.00)
+            vicesindaco = (2788.87, 4657.50)
+            assessore = (2231.09, 3726.00)
+            pres_consiglio = (2231.09, 3726.00)
+            cons_gettone = (32.53, 1552.50)
+        elif 10001 <= popolazione <= 250000:
+            sindaco = (4508.67, 6210.00)
+            vicesindaco = (3381.50, 4657.50)
+            assessore = (2705.20, 3726.00)
+            pres_consiglio = (2705.20, 3726.00)
+            cons_gettone = (32.53, 1552.50)
+        elif 250001 <= popolazione <= 500000:
+            sindaco = (4508.67, 6210.00)
+            vicesindaco = (3381.50, 4657.50)
+            assessore = (2705.20, 3726.00)
+            pres_consiglio = (2705.20, 3726.00)
+            cons_gettone = (53.45, 2760.00)
+        else:
+            sindaco = (7018.65, 13800.00)
+            vicesindaco = (5263.99, 10350.00)
+            assessore = (4562.12, 8970.00)
+            pres_consiglio = (4562.12, 8970.00)
+            cons_gettone = (92.96, 3450.00)
+
+    # Formattazione valuta IT
+    def fmt(v):
+        return f"€ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    data = {
+        "Carica": [
+            "Sindaco", 
+            "Vicesindaco", 
+            "Assessore", 
+            "Presidente del Consiglio Comunale", 
+            "Consigliere (gettone di presenza)", 
+            "Consigliere (Compenso mensile massimo)"
+        ],
+        "Ante 2024": [fmt(sindaco[0]), fmt(vicesindaco[0]), fmt(assessore[0]), fmt(pres_consiglio[0]), fmt(cons_gettone[0]), fmt(cons_gettone[1])],
+        "Attuale": [fmt(sindaco[1]), fmt(vicesindaco[1]), fmt(assessore[1]), fmt(pres_consiglio[1]), fmt(cons_gettone[0]), fmt(cons_gettone[1])]
+    }
+    return pd.DataFrame(data)
+
 # =========================
 # STREAMLIT UI
 # =========================
@@ -636,6 +802,8 @@ def pagina_anagrafiche_comune():
     # Filter
     # =========================
     df_comune = df.loc[df["denominazione_comune"].eq(comune)].copy()
+
+    popolazione = int(df_comune["popolazione_censita_alla_data_elezione"].iloc[0])
     
     if df_comune.empty:
         st.warning("Nessun dato disponibile per il comune selezionato.")
@@ -764,6 +932,8 @@ def pagina_anagrafiche_comune():
     # STREAMLIT OUTPUT
     # =========================
     st.subheader(f"Comune selezionato: {comune}")
+
+    st.metric(f"Popolazione residente: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -802,6 +972,37 @@ def pagina_anagrafiche_comune():
     
     st.write("### Tabella componenti")
     st.dataframe(df_ridotto, use_container_width=True, hide_index=True)
+
+    st.subheader("💰 Indennità mensile massima degli Amministratori Comunali")
+    
+    # Creazione della lista ordinata di selezione
+    tutti_i_comuni = sorted(list(set(CITTA_METROPOLITANE + CAPOLUOGHI_REGIONE + CAPOLUOGHI_PROVINCIA)))
+    lista_selezione = ["-- Comune Ordinario / Altro --"] + tutti_i_comuni
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        comune = st.selectbox("Seleziona il Comune (se Capoluogo/Città Met.):", options=lista_selezione)
+    
+    with col2:
+        popolazione = st.number_input("Inserisci la Popolazione (n. abitanti):", min_value=1, value=15000, step=500)
+    
+    # Rilevamento automatico della categoria per mostrare un badge informativo
+    if comune in CITTA_METROPOLITANE:
+        st.info("ℹ️ Tipologia rilevata: **Città Metropolitana**")
+    elif comune in CAPOLUOGHI_REGIONE:
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Regione**")
+    elif comune in CAPOLUOGHI_PROVINCIA:
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Provincia**")
+    else:
+        st.info("ℹ️ Tipologia rilevata: **Comune Ordinario** (Calcolo basato unicamente sugli abitanti)")
+    
+    # Generazione e render della tabella
+    df_risultato = calcola_indennita_amministratori(popolazione, comune)
+    
+    st.markdown("### 📋 Prospetto Indennità Mensili")
+    st.dataframe(df_risultato, use_container_width=True, hide_index=True)
+
 
 if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
