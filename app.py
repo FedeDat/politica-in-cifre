@@ -411,7 +411,6 @@ pagina = st.sidebar.selectbox(
     [
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
-        "Trattamento economico",
         "Anagrafica Comuni"
     ]
 )
