@@ -779,17 +779,34 @@ def pagina_anagrafiche_comune():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.write(
-            f"Giunta: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne"
+        st.metric(
+            label="Giunta Comunale",
+            value=f"{perc_giunta['uomini']}% uomini",
+            delta=f"{perc_giunta['donne']}% donne"
         )
     
     with col2:
-        st.write(
-            f"Consiglio: {perc_consiglio['uomini']}% uomini - {perc_consiglio['donne']}% donne"
+        st.metric(
+            label="Consiglio Comunale",
+            value=f"{perc_consiglio['uomini']}% uomini",
+            delta=f"{perc_consiglio['donne']}% donne"
+        )
+
+    st.write("### Rappresentatività Under 35") 
+    
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            label="Giunta Comunale",
+            value=f"{under35_giunta}% under 35"
         )
     
-    st.write(f"Giunta under 35: {under35_giunta}%")
-    st.write(f"Consiglio under 35: {under35_consiglio}%")
+    with col2:
+        st.metric(
+            label="Consiglio Comunale",
+            value=f"{under35_consiglio}% under 35"
+        )
     
     st.write("### Tabella componenti")
     st.dataframe(df_ridotto, use_container_width=True, hide_index=True)
