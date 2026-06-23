@@ -780,16 +780,22 @@ def pagina_anagrafiche_comune():
 
     with col1:
         st.metric(
-            label="Giunta Comunale",
-            value=f"{perc_giunta['uomini']}% uomini",
-            delta=f"{perc_giunta['donne']}% donne"
+            label="Giunta Comunale - Uomini",
+            value=f"{perc_giunta['uomini']}%"
+        )
+        st.metric(
+            label="Giunta Comunale - Donne",
+            value=f"{perc_giunta['donne']}%"
         )
     
     with col2:
         st.metric(
-            label="Consiglio Comunale",
-            value=f"{perc_consiglio['uomini']}% uomini",
-            delta=f"{perc_consiglio['donne']}% donne"
+            label="Consiglio Comunale - Uomini",
+            value=f"{perc_consiglio['uomini']}%"
+        )
+        st.metric(
+            label="Consiglio Comunale - Donne",
+            value=f"{perc_consiglio['donne']}%"
         )
 
     st.write("### Rappresentatività Under 35") 
@@ -799,13 +805,13 @@ def pagina_anagrafiche_comune():
     with col1:
         st.metric(
             label="Giunta Comunale",
-            value=f"{under35_giunta}% under 35"
+            value=f"{under35_giunta}%"
         )
     
     with col2:
         st.metric(
             label="Consiglio Comunale",
-            value=f"{under35_consiglio}% under 35"
+            value=f"{under35_consiglio}%"
         )
     
     st.write("### Tabella componenti")
