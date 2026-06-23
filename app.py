@@ -986,9 +986,9 @@ def pagina_anagrafiche_comune():
     if comune in CITTA_METROPOLITANE_SET:
         st.info("ℹ️ Tipologia rilevata: **Città Metropolitana**")
     elif comune in CAPOLUOGHI_REGIONE_SET:
-        st.info("ℹ️ Tipologia rilevata_SET: **Capoluogo di Regione**")
-    elif comune in CAPOLUOGHI_PROVINCIA:
-        st.info("ℹ️ Tipologia rilevata_SET: **Capoluogo di Provincia**")
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Regione**")
+    elif comune in CAPOLUOGHI_PROVINCIA_SET:
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Provincia**")
     else:
         st.info("ℹ️ Tipologia rilevata: **Comune Ordinario** (indennità valutata sul numero di abitanti)")
     
