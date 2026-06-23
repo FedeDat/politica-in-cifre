@@ -933,7 +933,7 @@ def pagina_anagrafiche_comune():
     # =========================
     st.subheader(f"Comune selezionato: {comune}")
 
-    st.metric(f"Popolazione residente: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne")
+    st.metric(f"Popolazione residente", popolazione if popolazione is not None else "N/D")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -974,18 +974,6 @@ def pagina_anagrafiche_comune():
     st.dataframe(df_ridotto, use_container_width=True, hide_index=True)
 
     st.subheader("💰 Indennità mensile massima degli Amministratori Comunali")
-    
-    # Creazione della lista ordinata di selezione
-    tutti_i_comuni = sorted(list(set(CITTA_METROPOLITANE + CAPOLUOGHI_REGIONE + CAPOLUOGHI_PROVINCIA)))
-    lista_selezione = ["-- Comune Ordinario / Altro --"] + tutti_i_comuni
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        comune = st.selectbox("Seleziona il Comune (se Capoluogo/Città Met.):", options=lista_selezione)
-    
-    with col2:
-        popolazione = st.number_input("Inserisci la Popolazione (n. abitanti):", min_value=1, value=15000, step=500)
     
     # Rilevamento automatico della categoria per mostrare un badge informativo
     if comune in CITTA_METROPOLITANE:
