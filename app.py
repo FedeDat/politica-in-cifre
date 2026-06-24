@@ -1025,12 +1025,12 @@ def pagina_anagrafiche_comune():
     if len(df_ridotto) <= 1:
         st.warning("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
         
-    if url_comune is not None:
-        # URL exists: Display the info message with a clickable markdown link
-        st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
-    else:
-        # URL is None: Display alternative fallback text
-        st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
+        if url_comune is not None:
+            # URL exists: Display the info message with a clickable markdown link
+            st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
+        else:
+            # URL is None: Display alternative fallback text
+            st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
 
     st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if popolazione is not None else "N/D")
     
