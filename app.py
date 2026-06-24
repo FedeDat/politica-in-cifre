@@ -1027,7 +1027,7 @@ def pagina_anagrafiche_comune():
         
     if url_comune is not None:
         # URL exists: Display the info message with a clickable markdown link
-        st.info(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_}]({url_})")
+        st.info(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
     else:
         # URL is None: Display alternative fallback text
         st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
