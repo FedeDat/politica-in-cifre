@@ -683,6 +683,8 @@ def pagina_cedolini():
     
         # Scostamento dalla media
         differenza = eta - eta_media
+
+        st.info("ℹ️ Dati anagrafici, di partecipazione ed economici estratti automaticamente da dati pubblici online. Si prega di verificare correttezza prima di ulteriore utilizzo.")
         
         col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
     
@@ -855,7 +857,7 @@ def pagina_anagrafiche_comune():
     # =========================
     df_comune = df.loc[df["denominazione_comune"].eq(comune)].copy()
 
-    url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0]):
+    url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0])
 
     popolazione = int(df_comune["popolazione_censita_alla_data_elezione"].iloc[0])
     
