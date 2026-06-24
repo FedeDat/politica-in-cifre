@@ -1,4 +1,4 @@
-# Piemonte Regional Council Salary Scraper
+# Analizzatore dei costi della politica piemontese e rappresentatività dei gruppi minoritari presso gli organi comunali italiani
 
 ## Installation
 
