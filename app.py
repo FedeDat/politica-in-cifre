@@ -1025,7 +1025,7 @@ def pagina_anagrafiche_comune():
     if len(df_ridotto) <= 1:
         st.info("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
         
-    if url_ is not None:
+    if url_comune is not None:
         # URL exists: Display the info message with a clickable markdown link
         st.info(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_}]({url_})")
     else:
