@@ -1032,7 +1032,7 @@ def pagina_anagrafiche_comune():
         # URL is None: Display alternative fallback text
         st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
 
-    st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if is not None else "N/D")
+    st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if popolazione is not None else "N/D")
     
     col1, col2, col3, col4 = st.columns(4)
     
