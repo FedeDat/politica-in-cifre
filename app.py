@@ -426,6 +426,7 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
     assessore = (0.0, 0.0)
     pres_consiglio = (0.0, 0.0)
     cons_gettone = (0.0, 0.0)
+    cons_max = (0.0, 0.0)
 
     # 1. CITTÀ METROPOLITANE
     if comune_selezionato in CITTA_METROPOLITANE:
@@ -526,6 +527,7 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
             assessore = (2231.09, 3726.00)
             pres_consiglio = (2231.09, 3726.00)
             cons_gettone = (32.53, 32.53)
+            cons_max = (929.62,1552.50)
         elif 100001 <= popolazione <= 250000:
             sindaco = (4508.67, 6210.00)
             vicesindaco = (3381.50, 4657.50)
