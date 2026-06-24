@@ -566,6 +566,39 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
     }
     return pd.DataFrame(data)
 
+import requests
+
+def get_valid_municipality_url(city_name, province_code):
+    """
+    Constructs and checks standard formats for Italian municipality websites.
+    Returns the URL string if found, otherwise returns None.
+    """
+    # Clean inputs (lowercase, remove spaces/accents if necessary)
+    city = city_name.lower().replace(" ", "").strip()
+    prov = province_code.lower().strip()
+    
+    # Standard Italian institutional URL patterns
+    patterns = [
+        f"https://www.comune.{city}.{prov}.it",
+        f"https://www.comune.{city}.it",
+        f"https://www.{city}.it"
+    ]
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    
+    for url in patterns:
+        try:
+            # Use HEAD request for speed; allow redirects to find the final URL
+            response = requests.head(url, headers=headers, timeout=5, allow_redirects=True)
+            
+            if response.status_code < 400:
+                return response.url  # Restituisce solo la stringa dell'URL trovato
+                
+        except requests.RequestException:
+            continue # Try the next pattern if this one fails
+            
+    return None  # Restituisce None se nessun URL funziona
+
 # =========================
 # STREAMLIT UI
 # =========================
@@ -822,6 +855,8 @@ def pagina_anagrafiche_comune():
     # =========================
     df_comune = df.loc[df["denominazione_comune"].eq(comune)].copy()
 
+    url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0]):
+
     popolazione = int(df_comune["popolazione_censita_alla_data_elezione"].iloc[0])
     
     if df_comune.empty:
@@ -915,7 +950,6 @@ def pagina_anagrafiche_comune():
             return 0.0
         return round((df_tmp["eta"] < 35).mean() * 100, 1)
     
-    
     perc_giunta = percentuali_sesso(giunta)
     perc_consiglio = percentuali_sesso(consiglio)
     
@@ -986,7 +1020,17 @@ def pagina_anagrafiche_comune():
     # =========================
     st.subheader(f"Comune selezionato: {comune}")
 
-    st.metric(f"Popolazione residente", popolazione if popolazione is not None else "N/D")
+    if len(df_ridotto) <= 1:
+        st.info("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
+        
+    if url_ is not None:
+        # URL exists: Display the info message with a clickable markdown link
+        st.info(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_}]({url_})")
+    else:
+        # URL is None: Display alternative fallback text
+        st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
+
+    st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if is not None else "N/D")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1046,8 +1090,6 @@ def pagina_anagrafiche_comune():
     
     st.dataframe(df_risultato, use_container_width=True, hide_index=True)
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
-
-
 
 if pagina == "Analizzatore Cedolini":
     pagina_cedolini()
