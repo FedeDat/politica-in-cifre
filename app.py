@@ -1023,11 +1023,11 @@ def pagina_anagrafiche_comune():
     st.subheader(f"Comune selezionato: {comune}")
 
     if len(df_ridotto) <= 1:
-        st.info("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
+        st.warning("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
         
     if url_comune is not None:
         # URL exists: Display the info message with a clickable markdown link
-        st.info(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
+        st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
     else:
         # URL is None: Display alternative fallback text
         st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
@@ -1074,9 +1074,7 @@ def pagina_anagrafiche_comune():
 
     st.subheader("💰 Indennità mensili lorde (massime) degli Amministratori Comunali")
 
-    st.write("I commi da 583 a 587 della legge n. 234 del 30 dicembre 2021 (legge di Bilancio 2022) hanno previsto e finanziato (a carico statale) un incremento delle indennità di funzione.")
-    st.write("L'incremento percentuale decorrente dal 2022 trova applicazione integrale (nella misura del 100%) a decorrere dall'anno 2024.")
-    st.write("Informazioni tratte da De Carlo, E. (2021). Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali. Matelica: Halley Editrice. ISBN: 9788875895419.")    
+    st.write("I commi da 583 a 587 della legge n. 234 del 30 dicembre 2021 (legge di Bilancio 2022) hanno previsto e finanziato (a carico statale) un incremento delle indennità di funzione. L'incremento percentuale decorrente dal 2022 trova applicazione integrale (nella misura del 100%) a decorrere dall'anno 2024. Informazioni tratte da De Carlo, E. (2021). Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali. Matelica: Halley Editrice. ISBN: 9788875895419.")    
     # Rilevamento automatico della categoria per mostrare un badge informativo
     if comune in CITTA_METROPOLITANE_SET:
         st.info("ℹ️ Tipologia rilevata: **Città Metropolitana**")
