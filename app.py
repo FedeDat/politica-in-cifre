@@ -722,6 +722,8 @@ Tutte le elaborazioni vengono effettuate esclusivamente su dati pubblicamente di
 Le informazioni vengono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
 
 La tempestività degli aggiornamenti dipende pertanto dalla frequenza di pubblicazione delle fonti ufficiali.
+
+Ulteriori moduli sono in fase di definizione.
 """)
 
     st.divider()
@@ -751,7 +753,7 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
     st.subheader("📧 Contatti")
 
     st.write(
-        "Per informazioni, suggerimenti o segnalazioni di bug è possibile contattare "
+        "Per informazioni, suggerimenti, segnalazioni di bug, collaborazioni è possibile contattare "
         "**Federico Dattila** ([federico.dattila@gmail.com](mailto:federico.dattila@gmail.com))."
     )
 
