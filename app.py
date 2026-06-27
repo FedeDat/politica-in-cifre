@@ -5,7 +5,7 @@ import pandas as pd
 import requests
 import fitz
 import zipfile
-import matplotlib.pyplot as plt
+import unicodedata
 
 from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
