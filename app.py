@@ -1223,8 +1223,8 @@ def pagina_popolazione_comuni():
     # NORMALIZATION (UNICODE FIX DEFINITIVO)
     # =====================================================
     def normalize_comune(name):
-    if pd.isna(name):
-        return name
+        if pd.isna(name):
+            return name
     
         name = str(name).strip()
     
