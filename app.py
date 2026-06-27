@@ -1219,19 +1219,28 @@ def pagina_popolazione_comuni():
 
     st.subheader("Comuni italiani per popolazione")
 
-    import io
-    import zipfile
-    import unicodedata
-
     # =====================================================
     # NORMALIZATION (UNICODE FIX DEFINITIVO)
     # =====================================================
     def normalize_comune(name):
-        if pd.isna(name):
-            return name
-        name = str(name).strip()
-        name = unicodedata.normalize("NFC", name)
+    if pd.isna(name):
         return name
+
+    name = str(name).strip()
+
+    # STEP 1: normalize Unicode to canonical composed form
+    name = unicodedata.normalize("NFC", name)
+
+    # STEP 2: remove any hidden combining marks (CRITICAL FIX)
+    name = "".join(
+        c for c in name
+        if not unicodedata.combining(c)
+    )
+
+    # STEP 3: case-insensitive stable comparison
+    name = name.casefold()
+
+    return name
 
     def key_comune(name):
         if pd.isna(name):
