@@ -1437,7 +1437,7 @@ def pagina_popolazione_comuni():
     
     comuni_map = {c.upper(): c for c in comuni}
 
-    st.warning("⚠️ Alcuni testi presentano anomalie di formattazione dovute alla conversione errata delle lettere accentate nei dati di origine.")
+    st.warning("⚠️ Alcuni nomi di comune presentano anomalie di formattazione dovute alla conversione errata delle lettere accentate nei dati di origine.")
     
     comune_sel_ui = st.selectbox(
         "Seleziona un comune",
