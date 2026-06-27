@@ -635,13 +635,15 @@ pagina = st.sidebar.selectbox(
 )
 
 def pagina_home():
-    
+
+    st.title("🏛️ Politica in Cifre")
+
     st.markdown("""
-### La politica italiana raccontata attraverso i dati
+### 📖 La politica italiana raccontata attraverso i dati
 
-**Politica in Cifre** è una piattaforma che raccoglie, elabora e visualizza dati pubblici provenienti da fonti istituzionali italiane, con l'obiettivo di rendere più semplice l'analisi quantitativa delle istituzioni e degli amministratori pubblici.
+**Politica in Cifre** è una piattaforma che raccoglie, elabora e visualizza dati pubblici provenienti da fonti istituzionali italiane, con l'obiettivo di favorire una conoscenza più approfondita delle istituzioni e degli amministratori pubblici.
 
-L'applicazione integra automaticamente informazioni provenienti da siti istituzionali, open data e documentazione pubblica, trasformandole in indicatori, statistiche e strumenti di consultazione accessibili.
+L'applicazione integra automaticamente informazioni provenienti da siti istituzionali, open data e documentazione pubblica, trasformandole in indicatori statistici e strumenti di consultazione accessibili.
 """)
 
     st.divider()
@@ -652,9 +654,9 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
 
         st.subheader("🏛️ Consiglio Regionale del Piemonte")
 
-        st.markdown("""
-Sono disponibili strumenti per:
+        st.write("Sono disponibili strumenti per:")
 
+        st.markdown("""
 - Analizzare i cedolini dei Consiglieri Regionali.
 - Consultare dati anagrafici e demografici.
 - Analizzare presenze e partecipazione ai lavori del Consiglio.
@@ -666,9 +668,9 @@ Sono disponibili strumenti per:
 
         st.subheader("🏘️ Comuni Italiani")
 
-        st.markdown("""
-Sono disponibili strumenti per:
+        st.write("Sono disponibili strumenti per:")
 
+        st.markdown("""
 - Analizzare Sindaci, Giunte e Consigli Comunali.
 - Calcolare indicatori demografici degli amministratori.
 - Misurare la rappresentanza di genere e degli Under 35.
@@ -680,57 +682,75 @@ Sono disponibili strumenti per:
 
     st.subheader("📊 Fonti dei dati")
 
+    st.write(
+        "Le analisi sono elaborate esclusivamente a partire da dati pubblici "
+        "e documentazione ufficiale."
+    )
+
     st.markdown("""
-Le analisi sono costruite utilizzando esclusivamente dati pubblici provenienti da:
-
-- Consiglio Regionale del Piemonte: [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/)
-- Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno): [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data)
-- De Carlo, E. (2021). Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali. Matelica: Halley Editrice. ISBN: 9788875895419.
-
+- **Consiglio Regionale del Piemonte:** [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/)
+- **Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno):** [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data)
+- **De Carlo, E. (2021).** *Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali*. Halley Editrice.
 """)
 
+    st.divider()
+
+    st.subheader("⚙️ Metodologia")
+
+    st.write(
+        "L'applicazione automatizza l'acquisizione e l'elaborazione delle "
+        "informazioni pubblicate dagli enti istituzionali."
+    )
+
     st.markdown("""
-### Metodologia
-
-L'applicazione:
-
-- acquisisce automaticamente dati da fonti istituzionali;
-- estrae informazioni da pagine web e documenti PDF pubblicati dagli enti;
-- elabora indicatori statistici e tabelle riassuntive;
-- presenta i risultati tramite dashboard interattive.
+- Acquisizione automatica dei dati da fonti ufficiali.
+- Estrazione di informazioni da pagine web e documenti PDF.
+- Elaborazione di indicatori statistici.
+- Presentazione dei risultati tramite dashboard interattive.
 
 Tutte le elaborazioni vengono effettuate esclusivamente su dati pubblicamente disponibili.
+""")
 
----
-### Aggiornamento dei dati
+    st.divider()
 
-Le informazioni sono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
+    st.subheader("🔄 Aggiornamento dei dati")
+
+    st.write("""
+Le informazioni vengono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
 
 La tempestività degli aggiornamenti dipende pertanto dalla frequenza di pubblicazione delle fonti ufficiali.
+""")
 
----
-### Limitazioni
+    st.divider()
 
+    st.subheader("⚠️ Limitazioni")
+
+    st.write("""
 L'applicazione automatizza l'estrazione di dati pubblici che possono essere modificati dagli enti senza preavviso.
 
 In presenza di variazioni nei siti istituzionali o nei documenti pubblicati, alcune informazioni potrebbero risultare temporaneamente incomplete o non aggiornate.
+""")
 
----
-### Disclaimer
+    st.divider()
 
+    st.subheader("📄 Disclaimer")
+
+    st.write("""
 Il progetto ha esclusivamente finalità informative, divulgative e di analisi dei dati.
 
 Non costituisce una pubblicazione ufficiale delle amministrazioni interessate.
 
 Gli utenti sono invitati a verificare sempre le informazioni presso le fonti istituzionali competenti prima di farne qualsiasi utilizzo.
-
----
-### Contatti
-
-Per informazioni e segnalazioni di bug, scrivere a 
-[**Federico Dattila**](mailto:federico.dattila@gmail.com) 
-(<mailto:federico.dattila@gmail.com>).
 """)
+
+    st.divider()
+
+    st.subheader("📧 Contatti")
+
+    st.write(
+        "Per informazioni, suggerimenti o segnalazioni di bug è possibile contattare "
+        "[**Federico Dattila**](mailto:federico.dattila@gmail.com)."
+    )
 
 #    st.divider()
 
