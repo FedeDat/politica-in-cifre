@@ -752,23 +752,6 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
         "[**Federico Dattila**](mailto:federico.dattila@gmail.com)."
     )
 
-#    st.divider()
-
-#    st.subheader("🚀 Sviluppi futuri")
-
-#    col1, col2 = st.columns(2)
-
-#    with col1:
-#        st.checkbox("Analisi Consiglio Regionale", value=True, disabled=True)
-#        st.checkbox("Analisi Amministrazioni Comunali", value=True, disabled=True)
-#        st.checkbox("Indicatori demografici", value=True, disabled=True)
-
-#    with col2:
-#        st.checkbox("Consigli Regionali di tutte le Regioni", disabled=True)
-#        st.checkbox("Parlamento Italiano", disabled=True)
-#        st.checkbox("Risultati elettorali", disabled=True)
-#        st.checkbox("Dashboard comparative", disabled=True)
-
 def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
