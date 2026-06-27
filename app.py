@@ -1427,12 +1427,23 @@ def pagina_popolazione_comuni():
     years = range(2019, 2026)
     df_all = build_dataset(years)
 
+    comuni = (
+    df_all["Comune"]
+    .dropna()
+    .astype(str)
+    .str.strip()
+    .unique()
+    )
+    
     comuni_map = {c.upper(): c for c in comuni}
-
-    comune_sel_ui = st.selectbox("Seleziona un comune", list(comuni_map.keys()))
-
+    
+    comune_sel_ui = st.selectbox(
+        "Seleziona un comune",
+        list(comuni_map.keys())
+    )
+    
     comune_sel = comuni_map[comune_sel_ui]
-
+    
     analyze_municipality(df_all, comune_sel)
 
 if pagina == "Home":
