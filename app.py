@@ -1407,7 +1407,7 @@ def pagina_popolazione_comuni():
         # CHARTS
         # =====================================================
         st.subheader("📊 Andamento della popolazione")
-        st.line_chart(d.set_index("Anno")[["Popolazione"]])
+        st.bar_chart(d.set_index("Anno")[["Popolazione"]])
 
         st.subheader("📉 Variazione percentuale annuale")
         st.line_chart(d.set_index("Anno")[["variazione (%)"]])
