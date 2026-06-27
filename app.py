@@ -1326,7 +1326,11 @@ def pagina_popolazione_comuni():
     
         d["percentile"] = d.apply(compute_percentile, axis=1)
     
-        last_row = d.iloc[-1]
+        # =====================================================
+        # PERCENTILE + LATEST YEAR
+        # =====================================================
+        latest_year = d["Anno"].max()
+        last_row = d[d["Anno"] == latest_year].iloc[0]
     
         # =====================================================
         # METRICS (TOP SUMMARY)
@@ -1356,8 +1360,9 @@ def pagina_popolazione_comuni():
             )
     
         with col2:
+
             st.metric(
-                label="Popolazione totale (ultimo anno)",
+                label=f"Popolazione totale {latest_year}",
                 value=int(last_row["Popolazione"]),
                 delta=delta_label
             )
