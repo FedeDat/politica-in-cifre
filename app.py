@@ -1406,6 +1406,9 @@ def pagina_popolazione_comuni():
         # =====================================================
         # CHARTS
         # =====================================================
+
+        d["Anno"] = d["Anno"].astype(str)
+        
         st.subheader("📊 Andamento della popolazione")
         st.bar_chart(d.set_index("Anno")[["Popolazione"]])
 
