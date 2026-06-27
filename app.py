@@ -568,8 +568,6 @@ def calcola_indennita_amministratori(popolazione, comune_selezionato):
     }
     return pd.DataFrame(data)
 
-import requests
-
 def get_valid_municipality_url(city_name, province_code):
     """
     Constructs and checks standard formats for Italian municipality websites.
@@ -635,7 +633,84 @@ pagina = st.sidebar.selectbox(
     ]
 )
 
-def pagina_cedolini():
+def pagina_home():
+    
+    st.markdown("""
+### La politica italiana raccontata attraverso i dati
+
+**Politica in Cifre** è una piattaforma che raccoglie, elabora e visualizza dati pubblici provenienti da fonti istituzionali italiane, con l'obiettivo di rendere più semplice l'analisi quantitativa delle istituzioni e degli amministratori pubblici.
+
+L'applicazione integra automaticamente informazioni provenienti da siti istituzionali, open data e documentazione pubblica, trasformandole in indicatori, statistiche e strumenti di consultazione accessibili.
+""")
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.subheader("🏛️ Consiglio Regionale del Piemonte")
+
+        st.markdown("""
+Sono disponibili strumenti per:
+
+- Analizzare i cedolini dei Consiglieri Regionali.
+- Consultare dati anagrafici e demografici.
+- Analizzare presenze e partecipazione ai lavori del Consiglio.
+- Ricostruire l'evoluzione dei compensi nel tempo.
+- Esplorare statistiche aggregate della XII Legislatura.
+""")
+
+    with col2:
+
+        st.subheader("🏘️ Comuni Italiani")
+
+        st.markdown("""
+Sono disponibili strumenti per:
+
+- Analizzare Sindaci, Giunte e Consigli Comunali.
+- Calcolare indicatori demografici degli amministratori.
+- Misurare la rappresentanza di genere e degli Under 35.
+- Consultare le indennità previste dalla normativa nazionale.
+- Visualizzare la composizione politica degli organi comunali.
+""")
+
+    st.divider()
+
+    st.subheader("📊 Fonti dei dati")
+
+    st.markdown("""
+Le analisi sono costruite utilizzando esclusivamente dati pubblici provenienti da:
+
+- Consiglio Regionale del Piemonte: [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/)
+- Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno): [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data)
+- De Carlo, E. (2021). Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali. Matelica: Halley Editrice. ISBN: 9788875895419.
+
+""")
+
+    st.info(
+        "Le elaborazioni sono generate automaticamente a partire da dati pubblici. "
+        "Pur adottando procedure di verifica, si raccomanda di consultare sempre le fonti ufficiali prima di utilizzare le informazioni per finalità amministrative, professionali o giornalistiche."
+    )
+
+#    st.divider()
+
+#    st.subheader("🚀 Sviluppi futuri")
+
+#    col1, col2 = st.columns(2)
+
+#    with col1:
+#        st.checkbox("Analisi Consiglio Regionale", value=True, disabled=True)
+#        st.checkbox("Analisi Amministrazioni Comunali", value=True, disabled=True)
+#        st.checkbox("Indicatori demografici", value=True, disabled=True)
+
+#    with col2:
+#        st.checkbox("Consigli Regionali di tutte le Regioni", disabled=True)
+#        st.checkbox("Parlamento Italiano", disabled=True)
+#        st.checkbox("Risultati elettorali", disabled=True)
+#        st.checkbox("Dashboard comparative", disabled=True)
+
+def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
     st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
@@ -737,7 +812,9 @@ def pagina_cedolini():
             )
         }
     )
-    
+
+        st.info("ℹ️ Una quota del compenso mensile può essere destinata al partito politico di appartenenza o al rimborso delle spese per collaboratori.")
+
         # =========================
         # CHART
         # =========================
@@ -756,7 +833,7 @@ def pagina_cedolini():
         st.write(
             "La disciplina del trattamento economico dei Consiglieri con gli importi per voci disaggregate "
             "è tratta dal link: "
-            "https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di."
+            "[https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di](https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di)."
         )
     
         # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
@@ -840,7 +917,7 @@ def pagina_anagrafiche_comune():
     st.subheader("📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al 6 giugno 2026)", divider=True)
 
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
-    st.write("Dati estratti da https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica.")
+    st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
     
     df = load_data()
     
@@ -1095,11 +1172,18 @@ def pagina_anagrafiche_comune():
     st.dataframe(df_risultato, use_container_width=True, hide_index=True)
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
-if pagina == "Analizzatore Cedolini":
-    pagina_cedolini()
+
+if pagina == "Home":
+    pagina_home()
+
+elif pagina == "Analizzatore Cedolini":
+    pagina_cedolini_regione()
 
 elif pagina == "Anagrafica Consiglieri Regionali":
     pagina_anagrafiche_regione()
 
 elif pagina == "Anagrafica Comuni":
     pagina_anagrafiche_comune()
+
+elif pagina == "Informazioni":
+    pagina_info()
