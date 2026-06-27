@@ -1224,30 +1224,33 @@ def pagina_popolazione_comuni():
     # =====================================================
     def normalize_comune(name):
         if pd.isna(name):
-            return name
+            return None
     
-        name = str(name).strip()
+        name = str(name)
     
-        # STEP 1: normalize Unicode to canonical composed form
-        name = unicodedata.normalize("NFC", name)
+        # 1. decode safety (fix latin1 artifacts already read by pandas)
+        name = name.encode("latin1", errors="ignore").decode("utf-8", errors="ignore")
     
-        # STEP 2: remove any hidden combining marks (CRITICAL FIX)
-        name = "".join(
-            c for c in name
-            if not unicodedata.combining(c)
-        )
+        # 2. normalize unicode (fix accents)
+        name = unicodedata.normalize("NFKC", name)
     
-        # STEP 3: case-insensitive stable comparison
-        name = name.casefold()
+        # 3. remove combining marks (CRITICAL for ISTAT datasets)
+        name = "".join(c for c in name if not unicodedata.combining(c))
     
-        return name
+        # 4. cleanup spacing
+        name = " ".join(name.split())
+    
+        # 5. casefold for matching
+        return name.casefold()
 
     def key_comune(name):
         if pd.isna(name):
-            return name
-        name = str(name).strip()
-        name = unicodedata.normalize("NFC", name)
-        return name.casefold()
+            return None
+    
+        name = str(name)
+        name = unicodedata.normalize("NFKC", name)
+        name = "".join(c for c in name if not unicodedata.combining(c))
+        return name.casefold().strip()
 
     # =====================================================
     # DOWNLOAD ISTAT
@@ -1313,9 +1316,7 @@ def pagina_popolazione_comuni():
             tmp = pd.DataFrame()
 
             # ORIGINAL NAME (UI)
-            tmp["Comune"] = df[muni_col].apply(normalize_comune)
-
-            # STABLE KEY (LOGIC)
+            tmp["Comune"] = df[muni_col].astype(str).str.strip()
             tmp["Comune_key"] = tmp["Comune"].apply(key_comune)
 
             tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
