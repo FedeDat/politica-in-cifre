@@ -1224,14 +1224,19 @@ def pagina_popolazione_comuni():
     import unicodedata
 
     # =====================================================
-    # NORMALIZATION
+    # NORMALIZATION (CRITICAL FIX FOR ITALIAN ACCENTS)
     # =====================================================
     def normalize_comune(name):
         if pd.isna(name):
             return name
         name = str(name).strip()
-        name = unicodedata.normalize("NFKC", name)
+        name = unicodedata.normalize("NFC", name)  # FIX ACCENTS PROPERLY
         return name
+
+    def key_comune(name):
+        if pd.isna(name):
+            return name
+        return unicodedata.normalize("NFC", str(name)).strip().casefold()
 
     # =====================================================
     # DOWNLOAD ISTAT
@@ -1297,7 +1302,7 @@ def pagina_popolazione_comuni():
             tmp = pd.DataFrame()
 
             tmp["Comune"] = df[muni_col].apply(normalize_comune)
-            tmp["Comune_upper"] = tmp["Comune"].str.upper()
+            tmp["Comune_key"] = tmp["Comune"].apply(key_comune)
 
             tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
             tmp["Nati maschi"] = pd.to_numeric(df[male_births_col], errors="coerce") if male_births_col else np.nan
@@ -1315,7 +1320,7 @@ def pagina_popolazione_comuni():
     # =====================================================
     def analyze_municipality(df, comune):
 
-        d = df[df["Comune_upper"] == comune].sort_values("Anno")
+        d = df[df["Comune_key"] == key_comune(comune)].sort_values("Anno")
 
         if d.empty:
             st.error("Comune non trovato")
@@ -1381,7 +1386,7 @@ def pagina_popolazione_comuni():
             )
 
         # =====================================================
-        # GRAFICI
+        # CHARTS
         # =====================================================
         st.subheader("📊 Andamento della popolazione")
         st.bar_chart(d.set_index("Anno")[["Popolazione"]])
@@ -1401,7 +1406,7 @@ def pagina_popolazione_comuni():
     years = range(2019, 2026)
     df_all = build_dataset(years)
 
-    comuni = sorted(df_all["Comune_upper"].dropna().unique())
+    comuni = sorted(df_all["Comune"].dropna().unique())
 
     comune_sel = st.selectbox("Seleziona un comune", comuni)
 
