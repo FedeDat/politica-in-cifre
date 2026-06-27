@@ -677,6 +677,7 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
 - Misurare la rappresentanza di genere e degli Under 35.
 - Consultare le indennità previste dalla normativa nazionale.
 - Visualizzare la composizione politica degli organi comunali.
+- Analizzare l'andamento della popolazione per tempo.
 """)
 
     st.divider()
@@ -689,9 +690,10 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
     )
 
     st.markdown("""
-- **Consiglio Regionale del Piemonte:** [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/)
-- **Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno):** [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data)
+- **Consiglio Regionale del Piemonte:** [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/).
+- **Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno):** [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data).
 - **De Carlo, E. (2021).** *Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali*. Halley Editrice.
+- **Dati ISTAT sulla popolazione residente:** [https://demo.istat.it/](https://demo.istat.it/).
 """)
 
     st.divider()
