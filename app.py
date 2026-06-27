@@ -630,8 +630,8 @@ pagina = st.sidebar.selectbox(
         "Home",
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
-        "Anagrafica Comuni",
-        "Popolazione Comuni"
+        "Anagrafica Organi Comunali",
+        "Comuni italiani per popolazione"
     ]
 )
 
