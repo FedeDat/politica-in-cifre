@@ -1364,7 +1364,6 @@ def pagina_popolazione_comuni():
     # =====================================================
     # STREAMLIT APP
     # =====================================================
-    st.title("📈 Analisi demografica ISTAT (2019–2025)")
     
     years = range(2019, 2026)
     
