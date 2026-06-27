@@ -752,7 +752,7 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
 
     st.write(
         "Per informazioni, suggerimenti o segnalazioni di bug è possibile contattare "
-        "**Federico Dattila**[federico.dattila@gmail.com](mailto:federico.dattila@gmail.com)."
+        "**Federico Dattila** [federico.dattila@gmail.com](mailto:federico.dattila@gmail.com)."
     )
 
 def pagina_cedolini_regione():
