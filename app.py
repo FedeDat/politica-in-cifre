@@ -631,7 +631,6 @@ pagina = st.sidebar.selectbox(
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
         "Anagrafica Comuni",
-        "Info"
     ]
 )
 
@@ -690,10 +689,48 @@ Le analisi sono costruite utilizzando esclusivamente dati pubblici provenienti d
 
 """)
 
-    st.info(
-        "Le elaborazioni sono generate automaticamente a partire da dati pubblici. "
-        "Pur adottando procedure di verifica, si raccomanda di consultare sempre le fonti ufficiali prima di utilizzare le informazioni per finalità amministrative, professionali o giornalistiche."
-    )
+    st.markdown("""
+### Metodologia
+
+L'applicazione:
+
+- acquisisce automaticamente dati da fonti istituzionali;
+- estrae informazioni da pagine web e documenti PDF pubblicati dagli enti;
+- elabora indicatori statistici e tabelle riassuntive;
+- presenta i risultati tramite dashboard interattive.
+
+Tutte le elaborazioni vengono effettuate esclusivamente su dati pubblicamente disponibili.
+
+---
+### Aggiornamento dei dati
+
+Le informazioni sono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
+
+La tempestività degli aggiornamenti dipende pertanto dalla frequenza di pubblicazione delle fonti ufficiali.
+
+---
+### Limitazioni
+
+L'applicazione automatizza l'estrazione di dati pubblici che possono essere modificati dagli enti senza preavviso.
+
+In presenza di variazioni nei siti istituzionali o nei documenti pubblicati, alcune informazioni potrebbero risultare temporaneamente incomplete o non aggiornate.
+
+---
+### Disclaimer
+
+Il progetto ha esclusivamente finalità informative, divulgative e di analisi dei dati.
+
+Non costituisce una pubblicazione ufficiale delle amministrazioni interessate.
+
+Gli utenti sono invitati a verificare sempre le informazioni presso le fonti istituzionali competenti prima di farne qualsiasi utilizzo.
+
+---
+### Contatti
+
+Per informazioni e segnalazioni di bug, scrivere a 
+[**Federico Dattila**](mailto:federico.dattila@gmail.com) 
+(<mailto:federico.dattila@gmail.com>).
+""")
 
 #    st.divider()
 
@@ -1243,6 +1280,3 @@ elif pagina == "Anagrafica Consiglieri Regionali":
 
 elif pagina == "Anagrafica Comuni":
     pagina_anagrafiche_comune()
-
-elif pagina == "Informazioni":
-    pagina_info()
