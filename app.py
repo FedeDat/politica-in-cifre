@@ -1335,8 +1335,6 @@ def pagina_popolazione_comuni():
         # =====================================================
         # METRICS (TOP SUMMARY)
         # =====================================================
-        st.subheader("📌 Riepilogo")
-    
         # previous year for delta
         if len(d) > 1:
             prev_row = d.iloc[-2]
@@ -1356,9 +1354,10 @@ def pagina_popolazione_comuni():
         with col1:
             st.metric(
                 label="Percentile popolazione",
-                value=f"{last_row['percentile']:.2f}%"
+                value=f"{last_row['percentile']:.1f}°",
+                help=f"Questo comune è più popolato del {last_row['percentile']:.1f}% dei comuni italiani. Solo il {100 - last_row['percentile']:.1f}% ha più abitanti."
             )
-    
+            
         with col2:
 
             st.metric(
