@@ -1,13 +1,14 @@
 import io
 import re
-from datetime import datetime, date
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib.parse import urljoin
-
 import streamlit as st
 import pandas as pd
 import requests
 import fitz
+import zipfile
+
+from datetime import datetime, date
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
