@@ -631,6 +631,7 @@ pagina = st.sidebar.selectbox(
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
         "Anagrafica Comuni",
+        "Popolazione Comuni"
     ]
 )
 
@@ -955,7 +956,7 @@ def pagina_anagrafiche_regione():
         hide_index=True
     )
 
-def pagina_anagrafiche_comune():
+def pagina_anagrafiche_comuni():
     st.subheader("📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al 6 giugno 2026)", divider=True)
 
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
@@ -1214,63 +1215,11 @@ def pagina_anagrafiche_comune():
     st.dataframe(df_risultato, use_container_width=True, hide_index=True)
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
-def pagina_info():
+def pagina_popolazione_comuni():
 
-    st.title("ℹ️ Informazioni sul progetto")
+    st.subheader("Comuni italiani per popolazione")
 
-    st.markdown("""
-## Politica in Cifre
-
-**Politica in Cifre** è un progetto indipendente dedicato all'analisi quantitativa della politica italiana attraverso l'utilizzo di dati aperti e informazioni pubblicamente accessibili.
-
-L'obiettivo è favorire una maggiore trasparenza delle istituzioni mettendo a disposizione strumenti semplici per consultare, analizzare e confrontare dati relativi agli amministratori pubblici.
-
----
-### Metodologia
-
-L'applicazione:
-
-- acquisisce automaticamente dati da fonti istituzionali;
-- estrae informazioni da pagine web e documenti PDF pubblicati dagli enti;
-- elabora indicatori statistici e tabelle riassuntive;
-- presenta i risultati tramite dashboard interattive.
-
-Tutte le elaborazioni vengono effettuate esclusivamente su dati pubblicamente disponibili.
-
----
-### Aggiornamento dei dati
-
-Le informazioni sono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
-
-La tempestività degli aggiornamenti dipende pertanto dalla frequenza di pubblicazione delle fonti ufficiali.
-
----
-### Limitazioni
-
-L'applicazione automatizza l'estrazione di dati pubblici che possono essere modificati dagli enti senza preavviso.
-
-In presenza di variazioni nei siti istituzionali o nei documenti pubblicati, alcune informazioni potrebbero risultare temporaneamente incomplete o non aggiornate.
-
----
-### Disclaimer
-
-Il progetto ha esclusivamente finalità informative, divulgative e di analisi dei dati.
-
-Non costituisce una pubblicazione ufficiale delle amministrazioni interessate.
-
-Gli utenti sono invitati a verificare sempre le informazioni presso le fonti istituzionali competenti prima di farne qualsiasi utilizzo.
-
----
-### Contatti
-
-Per informazioni e segnalazioni di bug, scrivere a 
-[**Federico Dattila**](mailto:federico.dattila@gmail.com) 
-(<mailto:federico.dattila@gmail.com>).
-""")
-
-    st.success(
-        "Il codice dell'applicazione è sviluppato in Python utilizzando Streamlit e tecniche di web scraping e analisi automatica dei dati pubblici."
-    )
+    st.markdown("""Working in progress""")
 
 if pagina == "Home":
     pagina_home()
@@ -1281,5 +1230,8 @@ elif pagina == "Analizzatore Cedolini":
 elif pagina == "Anagrafica Consiglieri Regionali":
     pagina_anagrafiche_regione()
 
-elif pagina == "Anagrafica Comuni":
-    pagina_anagrafiche_comune()
+elif pagina == "Anagrafica Organi Comunali":
+    pagina_anagrafiche_comuni()
+
+elif pagina == "Comuni italiani per popolazione":
+    pagina_popolazione_comuni()
