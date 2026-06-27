@@ -677,7 +677,7 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
 - Misurare la rappresentanza di genere e degli Under 35.
 - Consultare le indennità previste dalla normativa nazionale.
 - Visualizzare la composizione politica degli organi comunali.
-- Analizzare l'andamento della popolazione per tempo.
+- Analizzare l'andamento della popolazione nel tempo.
 """)
 
     st.divider()
@@ -752,7 +752,7 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
 
     st.write(
         "Per informazioni, suggerimenti o segnalazioni di bug è possibile contattare "
-        "[**Federico Dattila**](mailto:federico.dattila@gmail.com)."
+        "**Federico Dattila**[federico.dattila@gmail.com](mailto:federico.dattila@gmail.com)."
     )
 
 def pagina_cedolini_regione():
