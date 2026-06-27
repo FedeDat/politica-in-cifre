@@ -1427,9 +1427,11 @@ def pagina_popolazione_comuni():
     years = range(2019, 2026)
     df_all = build_dataset(years)
 
-    comuni = sorted(df_all["Comune"].dropna().unique())
+    comuni_map = {c.upper(): c for c in comuni}
 
-    comune_sel = st.selectbox("Seleziona un comune", comuni)
+    comune_sel_ui = st.selectbox("Seleziona un comune", list(comuni_map.keys()))
+
+    comune_sel = comuni_map[comune_sel_ui]
 
     analyze_municipality(df_all, comune_sel)
 
