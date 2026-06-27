@@ -1221,6 +1221,17 @@ def pagina_popolazione_comuni():
 
     import io
     import zipfile
+    import unicodedata
+
+    # =====================================================
+    # NORMALIZATION
+    # =====================================================
+    def normalize_comune(name):
+        if pd.isna(name):
+            return name
+        name = str(name).strip()
+        name = unicodedata.normalize("NFKC", name)
+        return name
 
     # =====================================================
     # DOWNLOAD ISTAT
@@ -1284,9 +1295,11 @@ def pagina_popolazione_comuni():
             emigrated_col = find_flow_column(df, ["emigrati", "estero"])
 
             tmp = pd.DataFrame()
-            tmp["Comune"] = df[muni_col]
-            tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
 
+            tmp["Comune"] = df[muni_col].apply(normalize_comune)
+            tmp["Comune_upper"] = tmp["Comune"].str.upper()
+
+            tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
             tmp["Nati maschi"] = pd.to_numeric(df[male_births_col], errors="coerce") if male_births_col else np.nan
             tmp["Nati femmine"] = pd.to_numeric(df[female_births_col], errors="coerce") if female_births_col else np.nan
             tmp["Emigrati estero"] = pd.to_numeric(df[emigrated_col], errors="coerce") if emigrated_col else np.nan
@@ -1298,94 +1311,87 @@ def pagina_popolazione_comuni():
         return pd.concat(all_data, ignore_index=True)
 
     # =====================================================
-    # ANALISI COMUNE (STREAMLIT ONLY CHARTS)
+    # ANALISI COMUNE
     # =====================================================
     def analyze_municipality(df, comune):
-    
-        d = df[df["Comune"] == comune].sort_values("Anno")
-    
+
+        d = df[df["Comune_upper"] == comune].sort_values("Anno")
+
         if d.empty:
             st.error("Comune non trovato")
             return
-    
+
         d = d.copy()
-    
+
         # =====================================================
         # FEATURES
         # =====================================================
         d["variazione (%)"] = d["Popolazione"].pct_change() * 100
         d["nuovi nati"] = d["Nati maschi"] + d["Nati femmine"]
         d["emigrati all'estero"] = d["Emigrati estero"]
-    
+
         # =====================================================
         # PERCENTILE
         # =====================================================
         def compute_percentile(row):
             year_df = df[df["Anno"] == row["Anno"]]
             return (year_df["Popolazione"] < row["Popolazione"]).mean() * 100
-    
+
         d["percentile"] = d.apply(compute_percentile, axis=1)
-    
+
         # =====================================================
-        # PERCENTILE + LATEST YEAR
+        # LATEST YEAR
         # =====================================================
         latest_year = d["Anno"].max()
         last_row = d[d["Anno"] == latest_year].iloc[0]
-    
+
         # =====================================================
-        # METRICS (TOP SUMMARY)
+        # METRICS
         # =====================================================
-        # previous year for delta
         if len(d) > 1:
             prev_row = d.iloc[-2]
-    
+
             pop_delta = int(last_row["Popolazione"] - prev_row["Popolazione"])
             pop_delta_pct = (
                 (last_row["Popolazione"] - prev_row["Popolazione"])
                 / prev_row["Popolazione"]
             ) * 100
-    
+
             delta_label = f"{pop_delta:+,} ({pop_delta_pct:.2f}%)"
         else:
             delta_label = None
-    
+
         col1, col2 = st.columns(2)
-    
+
         with col1:
             st.metric(
                 label="Percentile popolazione",
-                value=f"{last_row['percentile']:.1f}°",
-                help=f"Questo comune è più popolato del {last_row['percentile']:.1f}% dei comuni italiani. Solo il {100 - last_row['percentile']:.1f}% ha più abitanti."
+                value=f"{last_row['percentile']:.1f}%",
+                help=(
+                    f"Questo comune è più popolato del {last_row['percentile']:.1f}% dei comuni italiani. "
+                    f"Solo il {100 - last_row['percentile']:.1f}% ha più abitanti."
+                )
             )
-            
-        with col2:
 
+        with col2:
             st.metric(
                 label=f"Popolazione totale {latest_year}",
                 value=int(last_row["Popolazione"]),
                 delta=delta_label
             )
-    
+
         # =====================================================
-        # GRAFICO 1: POPOLAZIONE
+        # GRAFICI
         # =====================================================
         st.subheader("📊 Andamento della popolazione")
         st.bar_chart(d.set_index("Anno")[["Popolazione"]])
-    
-        # =====================================================
-        # GRAFICO 2: VARIAZIONE %
-        # =====================================================
+
         st.subheader("📉 Variazione percentuale annuale")
         st.line_chart(d.set_index("Anno")[["variazione (%)"]])
-    
-        # =====================================================
-        # GRAFICO 3: FLUSSI DEMOGRAFICI
-        # =====================================================
+
         st.subheader("👶 Flussi demografici")
         st.line_chart(
-            d.set_index("Anno")[
-                ["nuovi nati", "emigrati all'estero"]
-            ]
+            d.set_index("Anno")[["nuovi nati", "emigrati all'estero"]]
         )
 
     # =====================================================
@@ -1395,7 +1401,7 @@ def pagina_popolazione_comuni():
     years = range(2019, 2026)
     df_all = build_dataset(years)
 
-    comuni = sorted(df_all["Comune"].dropna().unique())
+    comuni = sorted(df_all["Comune_upper"].dropna().unique())
 
     comune_sel = st.selectbox("Seleziona un comune", comuni)
 
