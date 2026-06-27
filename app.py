@@ -1301,46 +1301,88 @@ def pagina_popolazione_comuni():
     # ANALISI COMUNE (STREAMLIT ONLY CHARTS)
     # =====================================================
     def analyze_municipality(df, comune):
-
+    
         d = df[df["Comune"] == comune].sort_values("Anno")
-
+    
         if d.empty:
             st.error("Comune non trovato")
             return
-
+    
         d = d.copy()
-        d["variazione_%"] = d["Popolazione"].pct_change() * 100
-        d["nati_totali"] = d["Nati maschi"] + d["Nati femmine"]
-
+    
         # =====================================================
-        # GRAFICO 1: POPOLAZIONE (Streamlit bar + line)
+        # FEATURES
         # =====================================================
-        st.subheader("📊 Andamento della popolazione")
-
-        pop_chart = d.set_index("Anno")[["Popolazione"]]
-        st.bar_chart(pop_chart)
-
-        var_chart = d.set_index("Anno")[["variazione_%"]]
-        st.line_chart(var_chart)
-
+        d["variazione (%)"] = d["Popolazione"].pct_change() * 100
+        d["nuovi nati"] = d["Nati maschi"] + d["Nati femmine"]
+        d["emigrati all'estero"] = d["Emigrati estero"]
+    
         # =====================================================
-        # GRAFICO 2: FLUSSI DEMOGRAFICI
-        # =====================================================
-        st.subheader("👶 Flussi demografici")
-
-        flow_chart = d.set_index("Anno")[["nati_totali", "Emigrati estero"]]
-        st.line_chart(flow_chart)
-
-        # =====================================================
-        # PERCENTILE FINALE
+        # PERCENTILE
         # =====================================================
         def compute_percentile(row):
             year_df = df[df["Anno"] == row["Anno"]]
             return (year_df["Popolazione"] < row["Popolazione"]).mean() * 100
-
+    
         d["percentile"] = d.apply(compute_percentile, axis=1)
-
-        st.success(f"📍 Percentile (2025): {d['percentile'].iloc[-1]:.2f}%")
+    
+        last_row = d.iloc[-1]
+    
+        # =====================================================
+        # METRICS (TOP SUMMARY)
+        # =====================================================
+        st.subheader("📌 Riepilogo")
+    
+        # previous year for delta
+        if len(d) > 1:
+            prev_row = d.iloc[-2]
+    
+            pop_delta = int(last_row["Popolazione"] - prev_row["Popolazione"])
+            pop_delta_pct = (
+                (last_row["Popolazione"] - prev_row["Popolazione"])
+                / prev_row["Popolazione"]
+            ) * 100
+    
+            delta_label = f"{pop_delta:+,} ({pop_delta_pct:.2f}%)"
+        else:
+            delta_label = None
+    
+        col1, col2 = st.columns(2)
+    
+        with col1:
+            st.metric(
+                label="Percentile popolazione",
+                value=f"{last_row['percentile']:.2f}%"
+            )
+    
+        with col2:
+            st.metric(
+                label="Popolazione totale (ultimo anno)",
+                value=int(last_row["Popolazione"]),
+                delta=delta_label
+            )
+    
+        # =====================================================
+        # GRAFICO 1: POPOLAZIONE
+        # =====================================================
+        st.subheader("📊 Andamento della popolazione")
+        st.bar_chart(d.set_index("Anno")[["Popolazione"]])
+    
+        # =====================================================
+        # GRAFICO 2: VARIAZIONE %
+        # =====================================================
+        st.subheader("📉 Variazione percentuale annuale")
+        st.line_chart(d.set_index("Anno")[["variazione (%)"]])
+    
+        # =====================================================
+        # GRAFICO 3: FLUSSI DEMOGRAFICI
+        # =====================================================
+        st.subheader("👶 Flussi demografici")
+        st.line_chart(
+            d.set_index("Anno")[
+                ["nuovi nati", "emigrati all'estero"]
+            ]
+        )
 
     # =====================================================
     # STREAMLIT APP
