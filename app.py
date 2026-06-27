@@ -1224,19 +1224,21 @@ def pagina_popolazione_comuni():
     import unicodedata
 
     # =====================================================
-    # NORMALIZATION (CRITICAL FIX FOR ITALIAN ACCENTS)
+    # NORMALIZATION (UNICODE FIX DEFINITIVO)
     # =====================================================
     def normalize_comune(name):
         if pd.isna(name):
             return name
         name = str(name).strip()
-        name = unicodedata.normalize("NFC", name)  # FIX ACCENTS PROPERLY
+        name = unicodedata.normalize("NFC", name)
         return name
 
     def key_comune(name):
         if pd.isna(name):
             return name
-        return unicodedata.normalize("NFC", str(name)).strip().casefold()
+        name = str(name).strip()
+        name = unicodedata.normalize("NFC", name)
+        return name.casefold()
 
     # =====================================================
     # DOWNLOAD ISTAT
@@ -1301,7 +1303,10 @@ def pagina_popolazione_comuni():
 
             tmp = pd.DataFrame()
 
+            # ORIGINAL NAME (UI)
             tmp["Comune"] = df[muni_col].apply(normalize_comune)
+
+            # STABLE KEY (LOGIC)
             tmp["Comune_key"] = tmp["Comune"].apply(key_comune)
 
             tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
@@ -1320,6 +1325,7 @@ def pagina_popolazione_comuni():
     # =====================================================
     def analyze_municipality(df, comune):
 
+        # FIX: always match on key_comune
         d = df[df["Comune_key"] == key_comune(comune)].sort_values("Anno")
 
         if d.empty:
