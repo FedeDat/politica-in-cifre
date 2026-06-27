@@ -1219,26 +1219,26 @@ def pagina_popolazione_comuni():
 
     st.subheader("Comuni italiani per popolazione")
 
+    import io
+    import zipfile
+
     # =====================================================
     # DOWNLOAD ISTAT
     # =====================================================
     def load_istat_population(year):
-    
+
         zip_url = f"https://demo.istat.it/data/p2/P2_{year}_it_Comuni.zip"
-    
+
         r = requests.get(zip_url, headers={"User-Agent": "Mozilla/5.0"})
         r.raise_for_status()
-    
+
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-    
             csv_file = next(name for name in z.namelist() if name.endswith(".csv"))
-    
             with z.open(csv_file) as f:
                 df = pd.read_csv(f, sep=";", skiprows=1, encoding="latin1")
-    
+
         return df
-    
-    
+
     # =====================================================
     # COLONNE
     # =====================================================
@@ -1247,8 +1247,7 @@ def pagina_popolazione_comuni():
             if "Popolazione" in c and "31 dicembre - Totale" in c:
                 return c
         raise KeyError("Colonna popolazione non trovata")
-    
-    
+
     def find_municipality_column(df):
         for c in df.columns:
             if c.lower() in ["comune", "territorio", "denominazione"]:
@@ -1257,123 +1256,103 @@ def pagina_popolazione_comuni():
             if "comun" in c.lower():
                 return c
         raise KeyError("Colonna comune non trovata")
-    
-    
+
     def find_flow_column(df, keywords):
         for c in df.columns:
             cl = c.lower()
             if all(k in cl for k in keywords):
                 return c
         return None
-    
-    
+
     # =====================================================
     # DATASET
     # =====================================================
     @st.cache_data
     def build_dataset(years):
-    
+
         all_data = []
-    
+
         for y in years:
             df = load_istat_population(y)
             df.columns = df.columns.str.strip()
-    
+
             pop_col = find_population_column(df)
             muni_col = find_municipality_column(df)
-    
+
             male_births_col = find_flow_column(df, ["nati", "vivi", "maschi"])
             female_births_col = find_flow_column(df, ["nati", "vivi", "femmine"])
             emigrated_col = find_flow_column(df, ["emigrati", "estero"])
-    
+
             tmp = pd.DataFrame()
             tmp["Comune"] = df[muni_col]
             tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
-    
+
             tmp["Nati maschi"] = pd.to_numeric(df[male_births_col], errors="coerce") if male_births_col else np.nan
             tmp["Nati femmine"] = pd.to_numeric(df[female_births_col], errors="coerce") if female_births_col else np.nan
             tmp["Emigrati estero"] = pd.to_numeric(df[emigrated_col], errors="coerce") if emigrated_col else np.nan
-    
+
             tmp["Anno"] = y
-    
+
             all_data.append(tmp)
-    
+
         return pd.concat(all_data, ignore_index=True)
-    
-    
+
     # =====================================================
-    # ANALISI COMUNE
+    # ANALISI COMUNE (STREAMLIT ONLY CHARTS)
     # =====================================================
     def analyze_municipality(df, comune):
-    
+
         d = df[df["Comune"] == comune].sort_values("Anno")
-    
+
         if d.empty:
             st.error("Comune non trovato")
             return
-    
+
+        d = d.copy()
         d["variazione_%"] = d["Popolazione"].pct_change() * 100
         d["nati_totali"] = d["Nati maschi"] + d["Nati femmine"]
-    
+
         # =====================================================
-        # GRAFICO 1: POPOLAZIONE
+        # GRAFICO 1: POPOLAZIONE (Streamlit bar + line)
         # =====================================================
         st.subheader("📊 Andamento della popolazione")
-    
-        fig, ax1 = plt.subplots(figsize=(10, 5))
-    
-        ax1.bar(d["Anno"], d["Popolazione"], color="steelblue")
-        ax1.set_ylabel("Popolazione")
-    
-        ax2 = ax1.twinx()
-        ax2.plot(d["Anno"], d["variazione_%"], color="red", marker="o")
-        ax2.set_ylabel("Variazione %")
-    
-        plt.title(f"Andamento popolazione - {comune}")
-    
-        st.pyplot(fig)
-    
+
+        pop_chart = d.set_index("Anno")[["Popolazione"]]
+        st.bar_chart(pop_chart)
+
+        var_chart = d.set_index("Anno")[["variazione_%"]]
+        st.line_chart(var_chart)
+
         # =====================================================
         # GRAFICO 2: FLUSSI DEMOGRAFICI
         # =====================================================
         st.subheader("👶 Flussi demografici")
-    
-        fig, ax = plt.subplots(figsize=(10, 5))
-    
-        ax.plot(d["Anno"], d["nati_totali"], marker="o", label="Nati (totale)")
-        ax.plot(d["Anno"], d["Emigrati estero"], marker="o", label="Emigrati estero")
-    
-        ax.set_title(f"Flussi demografici - {comune}")
-        ax.set_ylabel("Numero")
-        ax.legend()
-    
-        st.pyplot(fig)
-    
+
+        flow_chart = d.set_index("Anno")[["nati_totali", "Emigrati estero"]]
+        st.line_chart(flow_chart)
+
         # =====================================================
         # PERCENTILE FINALE
         # =====================================================
         def compute_percentile(row):
             year_df = df[df["Anno"] == row["Anno"]]
             return (year_df["Popolazione"] < row["Popolazione"]).mean() * 100
-    
+
         d["percentile"] = d.apply(compute_percentile, axis=1)
-    
-        st.success(
-            f"📍 Percentile (2025): {d['percentile'].iloc[-1]:.2f}%"
-        )
-    
+
+        st.success(f"📍 Percentile (2025): {d['percentile'].iloc[-1]:.2f}%")
+
     # =====================================================
     # STREAMLIT APP
     # =====================================================
-    
+
     years = range(2019, 2026)
-    
     df_all = build_dataset(years)
-    
+
     comuni = sorted(df_all["Comune"].dropna().unique())
-    
+
     comune_sel = st.selectbox("Seleziona un comune", comuni)
-    
+
     analyze_municipality(df_all, comune_sel)
 
 if pagina == "Home":
