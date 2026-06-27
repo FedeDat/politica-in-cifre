@@ -636,9 +636,7 @@ pagina = st.sidebar.selectbox(
 )
 
 def pagina_home():
-
-    st.title("🏛️ Politica in Cifre")
-
+    
     st.markdown("""
 ### 📖 La politica italiana raccontata attraverso i dati
 
