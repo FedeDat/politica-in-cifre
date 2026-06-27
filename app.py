@@ -603,7 +603,7 @@ def get_valid_municipality_url(city_name, province_code):
 # STREAMLIT UI
 # =========================
 
-st.set_page_config(page_title="Politica in cifre", layout="wide")
+st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
 
 st.title("🏛️ La politica italiana in cifre")
 
