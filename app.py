@@ -647,6 +647,8 @@ def pagina_home():
 L'applicazione integra automaticamente informazioni provenienti da siti istituzionali, open data e documentazione pubblica, trasformandole in indicatori statistici e strumenti di consultazione accessibili.
 """)
 
+    st.info("ℹ️ Usa il menu laterale (**>>** in alto a sinistra) per passare da un modulo all'altro.")
+
     st.divider()
 
     col1, col2 = st.columns(2)
@@ -655,7 +657,7 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
 
         st.subheader("🏛️ Consiglio Regionale del Piemonte")
 
-        st.write("Sono disponibili strumenti per:")
+        st.write("Sono disponibili moduli per:")
 
         st.markdown("""
 - Analizzare i cedolini dei Consiglieri Regionali.
@@ -669,7 +671,7 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
 
         st.subheader("🏘️ Comuni Italiani")
 
-        st.write("Sono disponibili strumenti per:")
+        st.write("Sono disponibili moduli per:")
 
         st.markdown("""
 - Analizzare Sindaci, Giunte e Consigli Comunali.
