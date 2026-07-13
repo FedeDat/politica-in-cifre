@@ -38,6 +38,37 @@ def create_session():
 
     return session
 
+# =========================
+# DAIT DATASET DATE
+# =========================
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_dait_reference_date():
+    """
+    Extracts the reference date shown on the DAIT open data page
+    (e.g. '1 Luglio 2026').
+    """
+    url = "https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica"
+
+    r = SESSION.get(url, timeout=30)
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    text = soup.get_text(" ", strip=True)
+
+    match = re.search(
+        r"\b(\d{1,2}\s+"
+        r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+\d{4})\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        return match.group(1).capitalize()
+
+    return "Data non disponibile"
 
 SESSION = create_session()
 
@@ -965,7 +996,13 @@ def pagina_anagrafiche_regione():
     )
 
 def pagina_anagrafiche_comuni():
-    st.subheader("📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al 6 giugno 2026)", divider=True)
+
+    reference_date = get_dait_reference_date()
+
+    st.subheader(
+        f"📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al {reference_date})",
+        divider=True
+    )
 
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
