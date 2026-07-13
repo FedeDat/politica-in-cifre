@@ -379,7 +379,9 @@ def load_data():
         skiprows=2,
         quotechar='"',
         encoding="utf-8",
-        low_memory=False
+        low_memory=False,
+        keep_default_na=False,
+        na_values=[""]
     )
     return df
 
