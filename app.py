@@ -1438,7 +1438,7 @@ def pagina_popolazione_comuni():
             delta_label = None
 
         
-        comune_capital = {c.upper(): c for c in comune}
+        comune_capital = list({c.upper(): c for c in comune})
         st.subheader(f"Comune selezionato: {comune_capital}")
 
         col1, col2 = st.columns(2)
@@ -1492,7 +1492,7 @@ def pagina_popolazione_comuni():
     .unique()
     )
     
-    comuni_map = list({c.upper(): c for c in comuni}.keys())
+    comuni_map = {c.upper(): c for c in comuni}
 
     st.warning("⚠️ Alcuni nomi di comune presentano anomalie di formattazione dovute alla conversione errata delle lettere accentate nei dati di origine.")
     
