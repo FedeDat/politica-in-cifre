@@ -796,13 +796,19 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
 def pagina_demo():
     st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
 
-    st.image("images/1_demo_cedolini.png", use_container_width=1000)
+    st.image("images/1_demo_cedolini.png", use_container_width=800)
 
     st.markdown("Accedendo al modulo **Anagrafica Consiglieri Regionali** è possibile consultare gruppo, date di nascità ed età dei Consiglieri Regionali Piemontesi della XII Legislatura.")
 
+    st.image("images/2_demo_anagrafica-consiglieri-regionali.png", use_container_width=800)
+
     st.markdown("Accedendo al modulo **Anagrafica Organi Comunali** è possibile consultare i parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani.")
 
+    st.image("images/3_demo_anagrafica-organi-comunali.png", use_container_width=800)
+
     st.markdown("Accedendo al modulo **Comuni italiani per popolazione** è possibile consultare andamento della popolazione, nuove nascite e emigrazione verso l'estero per i Comuni italiani.")
+
+    st.image("images/4_demo_andamento-popolazione-comuni.png", use_container_width=800)
 
 def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
