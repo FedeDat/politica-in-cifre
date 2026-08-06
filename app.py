@@ -793,7 +793,7 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
         "**Federico Dattila** ([federico.dattila@gmail.com](mailto:federico.dattila@gmail.com))."
     )
 
-def pagina_demo()
+def pagina_demo():
     st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
 
     st.markdown("Accedendo al modulo **Anagrafica Consiglieri Regionali** è possibile consultare gruppo, date di nascità ed età dei Consiglieri Regionali Piemontesi della XII Legislatura.")
