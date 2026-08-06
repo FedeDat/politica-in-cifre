@@ -1130,15 +1130,7 @@ def pagina_anagrafiche_comuni():
         if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
         else ""
     )
-
-    data_ballottaggio_0 = df_comune["data_ballottaggio"].iloc[0]
-
-    data_ballottaggio = (
-        pd.to_datetime(data_ballottaggio_0, dayfirst=True, errors="coerce")
-        if pd.notna(data_ballottaggio_0) and str(data_ballottaggio_0).strip() != ""
-        else ""
-    )
-
+    
     numero_consiglieri_0 = df_comune["consiglieri_spettanti"].iloc[0]
     
     numero_consiglieri = int(numero_consiglieri_0) if pd.notna(numero_consiglieri_0) and str(numero_consiglieri_0).strip() != "" else ""
@@ -1245,12 +1237,11 @@ def pagina_anagrafiche_comuni():
 
     st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if popolazione is not None else "N/D")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     col1.metric("Data Elezione", data_elezione if data_elezione is not None else "N/D")
-    col2.metric("Data Ballottaggio", data_ballottaggio if data_ballottaggio is not None else "N/D")
-    col3.metric("Numero massimo di Assessori Comunali", numero_assessori if numero_assessori is not None else "N/D")
-    col4.metric("Numero massimo di Consiglieri Comunali", numero_consiglieri if numero_consiglieri is not None else "N/D")
+    col2.metric("Numero massimo di Assessori Comunali", numero_assessori if numero_assessori is not None else "N/D")
+    col3.metric("Numero massimo di Consiglieri Comunali", numero_consiglieri if numero_consiglieri is not None else "N/D")
     
     col1, col2, col3, col4 = st.columns(4)
     
