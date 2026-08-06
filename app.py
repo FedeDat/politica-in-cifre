@@ -1127,7 +1127,7 @@ def pagina_anagrafiche_comuni():
 
     data_elezione = (
         pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
-        if pd.notna(value) and str(value).strip() != ""
+        if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
         else ""
     )
 
@@ -1135,7 +1135,7 @@ def pagina_anagrafiche_comuni():
 
     data_ballottaggio = (
         pd.to_datetime(data_ballottaggio_0, dayfirst=True, errors="coerce")
-        if pd.notna(value) and str(value).strip() != ""
+        if pd.notna(data_ballottaggio_0) and str(data_ballottaggio_0).strip() != ""
         else ""
     )
 
