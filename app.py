@@ -1249,7 +1249,7 @@ def pagina_anagrafiche_comuni():
 
     col1, col2, col3 = st.columns(3)
     
-    col1.metric("Data Elezione", data_elezione if data_elezione is not None else "N/D")
+    col1.metric("Data Elezione", data_elezione.strftime("%d/%m/%Y") if pd.notna(data_elezione) else "N/D")
     col2.metric("Numero massimo di Assessori Comunali", numero_assessori if numero_assessori is not None else "N/D")
     col3.metric("Numero massimo di Consiglieri Comunali", numero_consiglieri if numero_consiglieri is not None else "N/D")
     
