@@ -794,6 +794,9 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
     )
 
 def pagina_demo():
+
+    st.info("ℹ️ Usa il menu laterale (**>>** in alto a sinistra) per passare da un modulo all'altro.")
+    
     st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
 
     st.image("images/1_demo_cedolini.png", use_container_width=800)
