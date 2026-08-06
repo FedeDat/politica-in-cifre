@@ -663,6 +663,7 @@ pagina = st.sidebar.selectbox(
     "Seleziona sezione",
     [
         "Home",
+        "Demo",
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
         "Anagrafica Organi Comunali",
@@ -791,6 +792,15 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
         "Per informazioni, suggerimenti, segnalazioni di bug, collaborazioni è possibile contattare "
         "**Federico Dattila** ([federico.dattila@gmail.com](mailto:federico.dattila@gmail.com))."
     )
+
+def pagina_demo()
+    st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
+
+    st.markdown("Accedendo al modulo **Anagrafica Consiglieri Regionali** è possibile consultare gruppo, date di nascità ed età dei Consiglieri Regionali Piemontesi della XII Legislatura.")
+
+    st.markdown("Accedendo al modulo **Anagrafica Organi Comunali** è possibile consultare i parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani.")
+
+    st.markdown("Accedendo al modulo **Comuni italiani per popolazione** è possibile consultare andamento della popolazione, nuove nascite e emigrazione verso l'estero per i Comuni italiani.")
 
 def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
@@ -1493,6 +1503,9 @@ def pagina_popolazione_comuni():
 
 if pagina == "Home":
     pagina_home()
+
+elif pagina == "Demo":
+    pagina_demo()
 
 elif pagina == "Analizzatore Cedolini":
     pagina_cedolini_regione()
