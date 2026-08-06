@@ -1133,15 +1133,21 @@ def pagina_anagrafiche_comuni():
 
     if not df_comune.empty and "consiglieri_spettanti" in df_comune.columns:
         numero_consiglieri_0 = df_comune["consiglieri_spettanti"].iloc[0]
-        numero_consiglieri = int(numero_consiglieri_0)
-    else 
+        try:
+            numero_consiglieri = int(numero_consiglieri_0)
+        except (ValueError, TypeError):
+            numero_consiglieri = ""
+    else:
         numero_consiglieri = int(len(consiglio))
     
     if not df_comune.empty and "assessori_assegnati" in df_comune.columns:
-        numero_assessori_0 = df_comune["assessori_assegnati"].iloc[0]   
-        numero_assessori = int(numero_assessori_0) 
-    else     
-        numero_assessori = int(len(giunta)-1)
+        numero_assessori_0 = df_comune["assessori_assegnati"].iloc[0]
+        try:
+            numero_assessori = int(numero_assessori_0)
+        except (ValueError, TypeError):
+            numero_assessori = ""
+    else:
+        numero_assessori = int(len(giunta) - 1)
     
     def percentuali_sesso(df_tmp):
         if df_tmp.empty:
