@@ -1130,14 +1130,18 @@ def pagina_anagrafiche_comuni():
         if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
         else ""
     )
+
+    if not df_comune.empty and "consiglieri_spettanti" in df_comune.columns:
+        numero_consiglieri_0 = df_comune["consiglieri_spettanti"].iloc[0]
+        numero_consiglieri = int(numero_consiglieri_0)
+    else 
+        numero_consiglieri = int(len(consiglio))
     
-    numero_consiglieri_0 = df_comune["consiglieri_spettanti"].iloc[0]
-    
-    numero_consiglieri = int(numero_consiglieri_0) if pd.notna(numero_consiglieri_0) and str(numero_consiglieri_0).strip() != "" else ""
-    
-    numero_assessori_0 = df_comune["assessori_assegnati"].iloc[0]
-    
-    numero_assessori = int(numero_assessori_0) if pd.notna(numero_assessori_0) and str(numero_assessori_0).strip() != "" else ""
+    if not df_comune.empty and "assessori_assegnati" in df_comune.columns:
+        numero_assessori_0 = df_comune["assessori_assegnati"].iloc[0]   
+        numero_assessori = int(numero_assessori_0) 
+    else     
+        numero_assessori = int(len(giunta)-1)
     
     def percentuali_sesso(df_tmp):
         if df_tmp.empty:
