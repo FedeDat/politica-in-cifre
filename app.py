@@ -907,7 +907,7 @@ def pagina_cedolini_regione():
     
         st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Cedolino": st.column_config.LinkColumn(
@@ -970,7 +970,7 @@ def pagina_cedolini_regione():
         }
     
         df_generale = pd.DataFrame(dati_generali)
-        st.dataframe(df_generale, use_container_width=True, hide_index=True)
+        st.dataframe(df_generale, width="stretch", hide_index=True)
     
         # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
         st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
@@ -1004,7 +1004,7 @@ def pagina_cedolini_regione():
         }
 
         df_funzioni = pd.DataFrame(dati_funzioni)
-        st.dataframe(df_funzioni, use_container_width=True, hide_index=True)
+        st.dataframe(df_funzioni, width="stretch", hide_index=True)
 
 def pagina_anagrafiche_regione():
     st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
@@ -1012,7 +1012,7 @@ def pagina_anagrafiche_regione():
     
     st.dataframe(
         df_birth,
-        use_container_width=True,
+        width="stretch",
         hide_index=True
     )
 
@@ -1289,7 +1289,7 @@ def pagina_anagrafiche_comuni():
         )
     
     st.write("### Tabella componenti")
-    st.dataframe(df_ridotto, use_container_width=True, hide_index=True)
+    st.dataframe(df_ridotto, width="stretch", hide_index=True)
 
     st.subheader("💰 Indennità mensili lorde (massime) degli Amministratori Comunali")
 
@@ -1309,7 +1309,7 @@ def pagina_anagrafiche_comuni():
     # Generazione e render della tabella
     df_risultato = calcola_indennita_amministratori(popolazione, comune)
     
-    st.dataframe(df_risultato, use_container_width=True, hide_index=True)
+    st.dataframe(df_risultato, width="stretch", hide_index=True)
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
 def pagina_popolazione_comuni():
