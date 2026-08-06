@@ -1437,7 +1437,9 @@ def pagina_popolazione_comuni():
         else:
             delta_label = None
 
-        st.subheader(f"Comune selezionato: {comune}")
+        
+        comune_capital = {c.upper(): c for c in comune}
+        st.subheader(f"Comune selezionato: {comune_capital}")
 
         col1, col2 = st.columns(2)
 
