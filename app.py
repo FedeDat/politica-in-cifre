@@ -1437,9 +1437,7 @@ def pagina_popolazione_comuni():
         else:
             delta_label = None
 
-        
-        comune_capital = join({c.upper(): c for c in comune})
-        st.subheader(f"Comune selezionato: {comune_capital}")
+        st.subheader(f"Comune selezionato: {comune.upper()}")
 
         col1, col2 = st.columns(2)
 
