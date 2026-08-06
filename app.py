@@ -1492,7 +1492,7 @@ def pagina_popolazione_comuni():
     .unique()
     )
     
-    comuni_map = {c.upper(): c for c in comuni}
+    comuni_map = list({c.upper(): c for c in comuni})
 
     st.warning("⚠️ Alcuni nomi di comune presentano anomalie di formattazione dovute alla conversione errata delle lettere accentate nei dati di origine.")
     
