@@ -796,7 +796,7 @@ Gli utenti sono invitati a verificare sempre le informazioni presso le fonti ist
 def pagina_demo():
     st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
 
-    st.image("images/1_demo_cedolini.png", use_container_width=True)
+    st.image("images/1_demo_cedolini.png", use_container_width=1000)
 
     st.markdown("Accedendo al modulo **Anagrafica Consiglieri Regionali** è possibile consultare gruppo, date di nascità ed età dei Consiglieri Regionali Piemontesi della XII Legislatura.")
 
