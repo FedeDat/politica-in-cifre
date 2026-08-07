@@ -7,6 +7,7 @@ import requests
 import fitz
 import zipfile
 import unicodedata
+import time
 
 from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1154,8 +1155,20 @@ def pagina_anagrafiche_comuni():
         "Seleziona o digita l'anno di riferimento",
         options=years
     )
+
+    # =========================
+    # Progress bar
+    # =========================
+    progress = st.progress(0)
+    status = st.empty()
+
+    status.text("Scaricamento dati amministratori comunali...")
+    progress.progress(10)
     
     df = extract_dataset_amministratori_comunali(get_url_amministratori_comunali(year))
+
+    progress.progress(30)
+    status.text("Preparazione elenco comuni...")
     
     # =========================
     # Municipality selection (no default city)
@@ -1166,11 +1179,17 @@ def pagina_anagrafiche_comuni():
         "Seleziona o digita il Comune",
         options=comuni
     )
+
+    progress.progress(40)
+    status.text(f"Analisi del comune: {comune}...")
     
     # =========================
     # Filter
     # =========================
     df_comune = df.loc[df["comune"].eq(comune)].copy()
+
+    progress.progress(50)
+    status.text("Calcolo indicatori amministrativi...")
 
     url_comune = get_valid_municipality_url(comune, df_comune["provincia"].iloc[0])
 
@@ -1183,6 +1202,9 @@ def pagina_anagrafiche_comuni():
     # =========================
     # Age calculator
     # =========================
+
+    progress.progress(60)
+    status.text("Calcolo età e ruoli...")
 
     data_elezione_0 = df_comune["elezione"].iloc[0]
     
@@ -1306,6 +1328,9 @@ def pagina_anagrafiche_comuni():
     }
     
     df_comune["ruolo_ordine"] = df_comune["ruolo"].map(ordine_ruoli).fillna(3)
+
+    progress.progress(80)
+    status.text("Creazione tabella finale...")
     
     # =========================
     # Clean table
@@ -1354,6 +1379,14 @@ def pagina_anagrafiche_comuni():
             }
         )
     )
+    
+    progress.progress(100)
+    status.text("Analisi completata!")
+    
+    time.sleep(0.5)
+    
+    progress.empty()
+    status.empty()
     
     # =========================
     # STREAMLIT OUTPUT
