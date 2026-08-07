@@ -1177,7 +1177,7 @@ def pagina_anagrafiche_comuni():
     status.text("Scaricamento dati amministratori comunali...")
     progress.progress(10)
 
-    if year != current_year
+    if year != current_year:
         url_dataset=get_url_amministratori_comunali(year)
     else:
         url_dataset="http://dait.interno.gov.it/documenti/ammcom.csv"
