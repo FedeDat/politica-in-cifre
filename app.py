@@ -1044,7 +1044,7 @@ def pagina_demo():
 
     st.markdown("Accedendo al modulo **Evoluzione Anagrafica Organi Comunali** è possibile consultare l'andamento dei parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani (dal 1986 ad oggi).")
 
-    st.image("images/4_demo_evoluzione_anagrafica-organi-comunali.png", use_container_width=800)
+    st.image("images/4_demo_evoluzione-anagrafica-organi-comunali.png", use_container_width=800)
 
     st.markdown("Accedendo al modulo **Comuni italiani per popolazione** è possibile consultare andamento della popolazione, nuove nascite e emigrazione verso l'estero per i Comuni italiani.")
 
