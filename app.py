@@ -1654,203 +1654,367 @@ def pagina_evoluzione_comuni():
     total_years = end_year - start_year + 1
     
     for i, year in enumerate(range(start_year, end_year + 1)):
+
+        try:
+            status_text.write(f"Elaborazione anno {year}...")
     
-        status_text.write(f"Elaborazione anno {year}...")
+            df = extract_restricted_dataset_amministratori_comunali(
+                get_url_amministratori_comunali(year)
+            )
     
-        df = extract_restricted_dataset_amministratori_comunali(
-            get_url_amministratori_comunali(year)
-        )
+            # Check dataset
+            if df is None or df.empty or "comune" not in df.columns:
+                status_text.warning(f"Nessun dato disponibile per {year}")
+                continue
     
-        df_comune = df.loc[df["comune"].eq(comune)].copy()
+            df_comune = df.loc[
+                df["comune"].eq(comune)
+            ].copy()
     
-        if df_comune.shape[0] <= 1:
-            status_text.warning(f"Nessun dato trovato per {comune} nel {year}")
-            progress_bar.progress((i + 1) / total_years)
-            continue
+            if df_comune.shape[0] <= 1:
+                status_text.warning(
+                    f"Nessun dato sufficiente trovato per {comune} nel {year}"
+                )
+                continue
     
-        # =========================
-        # Age calculator
-        # =========================
     
-        data_elezione_0 = df_comune["elezione"].iloc[0]
+            # =========================
+            # Age calculator
+            # =========================
     
-        data_elezione = (
-            pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
-            if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
-            else None
-        )
+            data_elezione = None
     
-        df_comune["nascita"] = pd.to_datetime(
-            df_comune["nascita"],
-            dayfirst=True,
-            errors="coerce"
-        )
+            if "elezione" in df_comune.columns:
     
-        df_comune.loc[
-            (df_comune["nome"] == "SIMONE") &
-            (df_comune["cognome"] == "FISSOLO") &
-            (df_comune["comune"] == "TORINO"),
-            "nascita"
-        ] = pd.Timestamp("1989-05-31")
+                data_elezione_0 = df_comune["elezione"].iloc[0]
     
-        if data_elezione is not None:
-            df_comune["eta"] = (
-                data_elezione.year
-                - df_comune["nascita"].dt.year
-                - (
-                    (data_elezione.month < df_comune["nascita"].dt.month)
-                    |
-                    (
-                        (data_elezione.month == df_comune["nascita"].dt.month)
-                        &
-                        (data_elezione.day < df_comune["nascita"].dt.day)
+                if pd.notna(data_elezione_0) and str(data_elezione_0).strip():
+                    data_elezione = pd.to_datetime(
+                        data_elezione_0,
+                        dayfirst=True,
+                        errors="coerce"
+                    )
+    
+            if "nascita" in df_comune.columns:
+    
+                df_comune["nascita"] = pd.to_datetime(
+                    df_comune["nascita"],
+                    dayfirst=True,
+                    errors="coerce"
+                )
+    
+            else:
+                df_comune["nascita"] = pd.NaT
+    
+    
+            # Exception correction
+            mask = (
+                df_comune.get("nome", "").eq("SIMONE")
+                &
+                df_comune.get("cognome", "").eq("FISSOLO")
+                &
+                df_comune.get("comune", "").eq("TORINO")
+            )
+    
+            df_comune.loc[
+                mask,
+                "nascita"
+            ] = pd.Timestamp("1989-05-31")
+    
+    
+            if data_elezione is not None and pd.notna(data_elezione):
+    
+                nascita = df_comune["nascita"]
+    
+                df_comune["eta"] = (
+                    data_elezione.year
+                    - nascita.dt.year
+                    - (
+                        (data_elezione.month < nascita.dt.month)
+                        |
+                        (
+                            (data_elezione.month == nascita.dt.month)
+                            &
+                            (data_elezione.day < nascita.dt.day)
+                        )
                     )
                 )
-            ).astype("Int64")
-        else:
-            df_comune["eta"] = pd.NA
+    
+                df_comune["eta"] = df_comune["eta"].astype("Int64")
+    
+            else:
+                df_comune["eta"] = pd.NA
     
     
-        # =========================
-        # Role handling
-        # =========================
     
-        df_comune["ruolo"] = df_comune["carica"]
+            # =========================
+            # Role handling
+            # =========================
     
-        mask = (
-            df_comune["carica"]
-            .fillna("")
-            .str.contains("assessore", case=False)
-            &
-            df_comune["incarico"]
-            .fillna("")
-            .str.contains("vicesindaco", case=False)
-        )
-    
-        df_comune.loc[mask, "ruolo"] = "Vicesindaco"
+            if "carica" in df_comune.columns:
+                df_comune["ruolo"] = df_comune["carica"]
+            else:
+                df_comune["ruolo"] = ""
     
     
-        # =========================
-        # Subsets
-        # =========================
+            incarico = (
+                df_comune["incarico"]
+                if "incarico" in df_comune.columns
+                else ""
+            )
     
-        subset = ["comune", "cognome", "nome"]
-    
-        sindaco = (
-            df_comune[df_comune["ruolo"] == "Sindaco"]
-            .drop_duplicates(subset=subset)
-        )
-    
-        giunta = (
-            df_comune[
-                df_comune["ruolo"].isin(["Sindaco", "Vicesindaco"])
-                |
-                df_comune["ruolo"].str.contains(
+            mask = (
+                df_comune["ruolo"]
+                .fillna("")
+                .str.contains(
                     "assessore",
-                    case=False,
-                    na=False
+                    case=False
                 )
-            ]
-            .drop_duplicates(subset=subset)
-        )
-    
-        consiglio = (
-            df_comune[
-                df_comune["ruolo"].str.contains(
-                    "Consigliere",
-                    na=False
+                &
+                pd.Series(incarico)
+                .fillna("")
+                .astype(str)
+                .str.contains(
+                    "vicesindaco",
+                    case=False
                 )
-            ]
-            .drop_duplicates(subset=subset)
-        )
-    
-    
-        # =========================
-        # Indicators
-        # =========================
-    
-        eta_sindaco = (
-            sindaco["eta"].iloc[0]
-            if not sindaco.empty
-            else None
-        )
-    
-        eta_max_giunta = giunta["eta"].max()
-        eta_mean_giunta = round(giunta["eta"].mean(), 1)
-        eta_min_giunta = giunta["eta"].min()
-    
-        eta_max_consiglio = consiglio["eta"].max()
-        eta_mean_consiglio = round(consiglio["eta"].mean(), 1)
-        eta_min_consiglio = consiglio["eta"].min()
-    
-    
-        def percentuali_sesso(df_tmp):
-            if df_tmp.empty:
-                return {"uomini": 0, "donne": 0}
-    
-            p = (
-                df_tmp["sesso"]
-                .value_counts(normalize=True)
-                .mul(100)
             )
     
-            return {
-                "uomini": round(p.get("M", 0), 1),
-                "donne": round(p.get("F", 0), 1),
-            }
+            df_comune.loc[
+                mask,
+                "ruolo"
+            ] = "Vicesindaco"
     
     
-        def percentuale_under_35(df_tmp):
-            if df_tmp.empty:
-                return 0.0
     
-            return round(
-                (df_tmp["eta"] < 35).mean() * 100,
-                1
+            # =========================
+            # Subsets
+            # =========================
+    
+            subset = [
+                c for c in ["comune", "cognome", "nome"]
+                if c in df_comune.columns
+            ]
+    
+    
+            sindaco = (
+                df_comune[
+                    df_comune["ruolo"]
+                    .fillna("")
+                    .eq("Sindaco")
+                ]
+                .drop_duplicates(subset=subset)
             )
     
     
-        perc_giunta = percentuali_sesso(giunta)
-        perc_consiglio = percentuali_sesso(consiglio)
+            giunta = (
+                df_comune[
+                    df_comune["ruolo"]
+                    .fillna("")
+                    .isin(
+                        ["Sindaco", "Vicesindaco"]
+                    )
+                    |
+                    df_comune["ruolo"]
+                    .fillna("")
+                    .str.contains(
+                        "assessore",
+                        case=False
+                    )
+                ]
+                .drop_duplicates(subset=subset)
+            )
     
-        under35_giunta = percentuale_under_35(giunta)
-        under35_consiglio = percentuale_under_35(consiglio)
+    
+            consiglio = (
+                df_comune[
+                    df_comune["ruolo"]
+                    .fillna("")
+                    .str.contains(
+                        "Consigliere",
+                        case=False
+                    )
+                ]
+                .drop_duplicates(subset=subset)
+            )
     
     
-        numero_assessori = (
-            int(df_comune["assessori"].iloc[0])
-            if "assessori" in df_comune.columns
-            else len(giunta) - 1
-        )
     
-        numero_consiglieri = (
-            int(df_comune["consiglieri"].iloc[0])
-            if "consiglieri" in df_comune.columns
-            else len(consiglio)
-        )
+            # =========================
+            # Indicators
+            # =========================
     
-        rows_evoluzione.append({
-            "Anno": year,
-            "Assessori": numero_assessori,
-            "Consiglieri": numero_consiglieri,
-            "Età Sindaco (anni)": eta_sindaco,
-            "Età massima Giunta (anni)": eta_max_giunta,
-            "Età media Giunta (anni)": eta_mean_giunta,
-            "Età minima Giunta (anni)": eta_min_giunta,
-            "Età massima Consiglio (anni)": eta_max_consiglio,
-            "Età media Consiglio (anni)": eta_mean_consiglio,
-            "Età minima Consiglio (anni)": eta_min_consiglio,
-            "Uomini Giunta (%)": perc_giunta["uomini"],
-            "Donne Giunta (%)": perc_giunta["donne"],
-            "Uomini Consiglio (%)": perc_consiglio["uomini"],
-            "Donne Consiglio (%)": perc_consiglio["donne"],
-            "Under35 Giunta (%)": under35_giunta,
-            "Under35 Consiglio (%)": under35_consiglio,
-        })
+            eta_sindaco = (
+                sindaco["eta"].iloc[0]
+                if not sindaco.empty
+                else None
+            )
     
-        # Update progress
-        progress_bar.progress((i + 1) / total_years)
     
+            def safe_stat(df_tmp, operation):
+    
+                if df_tmp.empty or "eta" not in df_tmp.columns:
+                    return None
+    
+                values = df_tmp["eta"].dropna()
+    
+                if values.empty:
+                    return None
+    
+                if operation == "max":
+                    return values.max()
+    
+                if operation == "min":
+                    return values.min()
+    
+                if operation == "mean":
+                    return round(values.mean(), 1)
+    
+    
+    
+            eta_max_giunta = safe_stat(
+                giunta,
+                "max"
+            )
+    
+            eta_mean_giunta = safe_stat(
+                giunta,
+                "mean"
+            )
+    
+            eta_min_giunta = safe_stat(
+                giunta,
+                "min"
+            )
+    
+    
+            eta_max_consiglio = safe_stat(
+                consiglio,
+                "max"
+            )
+    
+            eta_mean_consiglio = safe_stat(
+                consiglio,
+                "mean"
+            )
+    
+            eta_min_consiglio = safe_stat(
+                consiglio,
+                "min"
+            )
+    
+    
+    
+            def percentuali_sesso(df_tmp):
+    
+                if df_tmp.empty or "sesso" not in df_tmp.columns:
+                    return {
+                        "uomini": 0,
+                        "donne": 0
+                    }
+    
+                p = (
+                    df_tmp["sesso"]
+                    .value_counts(normalize=True)
+                    .mul(100)
+                )
+    
+                return {
+                    "uomini": round(p.get("M", 0), 1),
+                    "donne": round(p.get("F", 0), 1)
+                }
+    
+    
+    
+            def percentuale_under_35(df_tmp):
+    
+                if df_tmp.empty:
+                    return 0.0
+    
+                eta = df_tmp["eta"].dropna()
+    
+                if eta.empty:
+                    return 0.0
+    
+                return round(
+                    (eta < 35).mean() * 100,
+                    1
+                )
+    
+    
+    
+            perc_giunta = percentuali_sesso(giunta)
+            perc_consiglio = percentuali_sesso(consiglio)
+    
+            under35_giunta = percentuale_under_35(giunta)
+            under35_consiglio = percentuale_under_35(consiglio)
+    
+    
+    
+            # =========================
+            # Counts
+            # =========================
+    
+            numero_assessori = (
+                int(df_comune["assessori"].iloc[0])
+                if "assessori" in df_comune.columns
+                and pd.notna(df_comune["assessori"].iloc[0])
+                else max(len(giunta)-1, 0)
+            )
+    
+    
+            numero_consiglieri = (
+                int(df_comune["consiglieri"].iloc[0])
+                if "consiglieri" in df_comune.columns
+                and pd.notna(df_comune["consiglieri"].iloc[0])
+                else len(consiglio)
+            )
+    
+    
+    
+            # =========================
+            # Save result
+            # =========================
+    
+            rows_evoluzione.append({
+    
+                "Anno": year,
+                "Assessori": numero_assessori,
+                "Consiglieri": numero_consiglieri,
+    
+                "Età Sindaco (anni)": eta_sindaco,
+    
+                "Età massima Giunta (anni)": eta_max_giunta,
+                "Età media Giunta (anni)": eta_mean_giunta,
+                "Età minima Giunta (anni)": eta_min_giunta,
+    
+                "Età massima Consiglio (anni)": eta_max_consiglio,
+                "Età media Consiglio (anni)": eta_mean_consiglio,
+                "Età minima Consiglio (anni)": eta_min_consiglio,
+    
+                "Uomini Giunta (%)": perc_giunta["uomini"],
+                "Donne Giunta (%)": perc_giunta["donne"],
+    
+                "Uomini Consiglio (%)": perc_consiglio["uomini"],
+                "Donne Consiglio (%)": perc_consiglio["donne"],
+    
+                "Under35 Giunta (%)": under35_giunta,
+                "Under35 Consiglio (%)": under35_consiglio,
+            })
+    
+    
+        except Exception as e:
+    
+            status_text.warning(
+                f"Errore elaborando {comune} nel {year}: {e}"
+            )
+    
+    
+        finally:
+    
+            progress_bar.progress(
+                (i + 1) / total_years
+            )
     
     # =========================
     # Final dataframe
