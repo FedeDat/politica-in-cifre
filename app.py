@@ -1510,10 +1510,21 @@ def pagina_anagrafiche_comuni():
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
 def pagina_evoluzione_comuni():
+
+    reference_date = get_dait_reference_date()
+
+    st.subheader(
+        f"📊 Analizzatore Evoluzione Anagrafiche Organi Comunali (aggiornate al {reference_date})",
+        divider=True
+    )
+
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi l'evoluzione della composizione delle Giunte e dei Consigli Comunali dal 1986.")
+    st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
+    
     current_year = datetime.now().year
     
     start_year, end_year = st.slider(
-        "Select year range",
+        "Seleziona il periodo dell'analisi",
         min_value=1986,
         max_value=current_year,
         value=(2000, 2020)
