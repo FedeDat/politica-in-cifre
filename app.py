@@ -1390,7 +1390,8 @@ def pagina_anagrafiche_comuni():
     
     giunta = (
         df_comune[
-            df_comune["ruolo"].isin(["Sindaco", "Vicesindaco"])
+            df_comune["ruolo"].isin(["Sindaco"])
+            | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
             | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
         ]
         .drop_duplicates(subset=subset)
@@ -1807,23 +1808,14 @@ def pagina_evoluzione_comuni():
             )
     
     
-            giunta = (
-                df_comune[
-                    df_comune["ruolo"]
-                    .fillna("")
-                    .isin(
-                        ["Sindaco", "Vicesindaco"]
-                    )
-                    |
-                    df_comune["ruolo"]
-                    .fillna("")
-                    .str.contains(
-                        "assessore",
-                        case=False
-                    )
-                ]
-                .drop_duplicates(subset=subset)
-            )
+                giunta = (
+                    df_comune[
+                        df_comune["ruolo"].isin(["Sindaco"])
+                        | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
+                        | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
+                    ]
+                    .drop_duplicates(subset=subset)
+                )
     
     
             consiglio = (
