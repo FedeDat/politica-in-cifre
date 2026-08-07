@@ -1629,8 +1629,6 @@ def pagina_evoluzione_comuni():
         get_url_amministratori_comunali(current_year)
     )
     
-    status.text("Preparazione elenco comuni...")
-    
     # =========================
     # Municipality selection
     # =========================
