@@ -1290,7 +1290,10 @@ def pagina_anagrafiche_comuni():
     )
     
     giunta = (
-        df_comune[df_comune["ruolo"].isin(["Sindaco", "Vicesindaco", "Assessore"])]
+        df_comune[
+            df_comune["ruolo"].isin(["Sindaco", "Vicesindaco"])
+            | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
+        ]
         .drop_duplicates(subset=subset)
     )
     
@@ -1353,9 +1356,17 @@ def pagina_anagrafiche_comuni():
     ordine_ruoli = {
         "Sindaco": 0,
         "Vicesindaco": 1,
-        "Assessore": 2,
     }
     
+    df_comune["ordine_ruolo"] = (
+        df_comune["ruolo"]
+        .apply(
+            lambda x: 2
+            if isinstance(x, str) and "assessore" in x.lower()
+            else ordine_ruoli.get(x, 3)
+        )
+    )
+        
     df_comune["ruolo_ordine"] = df_comune["ruolo"].map(ordine_ruoli).fillna(3)
 
     progress.progress(80)
