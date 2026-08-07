@@ -1530,7 +1530,7 @@ def pagina_evoluzione_comuni():
         value=(2000, 2020)
     )
     
-    st.write(f"Selected period: {start_year} - {end_year}")
+    st.write(f"Periodo selezionato: {start_year} - {end_year}")
 
 def pagina_popolazione_comuni():
 
