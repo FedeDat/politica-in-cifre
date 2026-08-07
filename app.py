@@ -1649,6 +1649,235 @@ def pagina_evoluzione_comuni():
 
     st.write(f"Comune selezionato: {comune}; Periodo selezionato: {start_year} - {end_year}")
 
+    rows_evoluzione = []
+    
+    # Streamlit UI elements
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    total_years = end_year - start_year + 1
+    
+    for i, year in enumerate(range(start_year, end_year + 1)):
+    
+        status_text.write(f"Elaborazione anno {year} ({i+1}/{total_years})...")
+    
+        df = extract_restricted_dataset_amministratori_comunali(
+            get_url_amministratori_comunali(year)
+        )
+    
+        df_comune = df.loc[df["comune"].eq(comune)].copy()
+    
+        if df_comune.empty:
+            status_text.warning(f"Nessun dato trovato per {comune} nel {year}")
+            progress_bar.progress((i + 1) / total_years)
+            continue
+    
+        popolazione = int(df_comune["popolazione"].iloc[0])
+    
+        # =========================
+        # Age calculator
+        # =========================
+    
+        data_elezione_0 = df_comune["elezione"].iloc[0]
+    
+        data_elezione = (
+            pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
+            if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
+            else None
+        )
+    
+        df_comune["nascita"] = pd.to_datetime(
+            df_comune["nascita"],
+            dayfirst=True,
+            errors="coerce"
+        )
+    
+        df_comune.loc[
+            (df_comune["nome"] == "SIMONE") &
+            (df_comune["cognome"] == "FISSOLO") &
+            (df_comune["comune"] == "TORINO"),
+            "nascita"
+        ] = pd.Timestamp("1989-05-31")
+    
+        if data_elezione is not None:
+            df_comune["eta"] = (
+                data_elezione.year
+                - df_comune["nascita"].dt.year
+                - (
+                    (data_elezione.month < df_comune["nascita"].dt.month)
+                    |
+                    (
+                        (data_elezione.month == df_comune["nascita"].dt.month)
+                        &
+                        (data_elezione.day < df_comune["nascita"].dt.day)
+                    )
+                )
+            ).astype("Int64")
+        else:
+            df_comune["eta"] = pd.NA
+    
+    
+        # =========================
+        # Role handling
+        # =========================
+    
+        df_comune["ruolo"] = df_comune["carica"]
+    
+        mask = (
+            df_comune["carica"]
+            .fillna("")
+            .str.contains("assessore", case=False)
+            &
+            df_comune["incarico"]
+            .fillna("")
+            .str.contains("vicesindaco", case=False)
+        )
+    
+        df_comune.loc[mask, "ruolo"] = "Vicesindaco"
+    
+    
+        # =========================
+        # Subsets
+        # =========================
+    
+        subset = ["comune", "cognome", "nome"]
+    
+        sindaco = (
+            df_comune[df_comune["ruolo"] == "Sindaco"]
+            .drop_duplicates(subset=subset)
+        )
+    
+        giunta = (
+            df_comune[
+                df_comune["ruolo"].isin(["Sindaco", "Vicesindaco"])
+                |
+                df_comune["ruolo"].str.contains(
+                    "assessore",
+                    case=False,
+                    na=False
+                )
+            ]
+            .drop_duplicates(subset=subset)
+        )
+    
+        consiglio = (
+            df_comune[
+                df_comune["ruolo"].str.contains(
+                    "Consigliere",
+                    na=False
+                )
+            ]
+            .drop_duplicates(subset=subset)
+        )
+    
+    
+        # =========================
+        # Indicators
+        # =========================
+    
+        eta_sindaco = (
+            sindaco["eta"].iloc[0]
+            if not sindaco.empty
+            else None
+        )
+    
+        eta_max_giunta = giunta["eta"].max()
+        eta_mean_giunta = round(giunta["eta"].mean(), 1)
+        eta_min_giunta = giunta["eta"].min()
+    
+        eta_max_consiglio = consiglio["eta"].max()
+        eta_mean_consiglio = round(consiglio["eta"].mean(), 1)
+        eta_min_consiglio = consiglio["eta"].min()
+    
+    
+        def percentuali_sesso(df_tmp):
+            if df_tmp.empty:
+                return {"uomini": 0, "donne": 0}
+    
+            p = (
+                df_tmp["sesso"]
+                .value_counts(normalize=True)
+                .mul(100)
+            )
+    
+            return {
+                "uomini": round(p.get("M", 0), 1),
+                "donne": round(p.get("F", 0), 1),
+            }
+    
+    
+        def percentuale_under_35(df_tmp):
+            if df_tmp.empty:
+                return 0.0
+    
+            return round(
+                (df_tmp["eta"] < 35).mean() * 100,
+                1
+            )
+    
+    
+        perc_giunta = percentuali_sesso(giunta)
+        perc_consiglio = percentuali_sesso(consiglio)
+    
+        under35_giunta = percentuale_under_35(giunta)
+        under35_consiglio = percentuale_under_35(consiglio)
+    
+    
+        numero_assessori = (
+            int(df_comune["assessori"].iloc[0])
+            if "assessori" in df_comune.columns
+            else len(giunta) - 1
+        )
+    
+        numero_consiglieri = (
+            int(df_comune["consiglieri"].iloc[0])
+            if "consiglieri" in df_comune.columns
+            else len(consiglio)
+        )
+    
+    
+        rows_evoluzione.append({
+            "Anno": year,
+            "Popolazione censita": popolazione,
+            "Numero assessori": numero_assessori,
+            "Numero consiglieri": numero_consiglieri,
+            "Età Sindaco (anni)": eta_sindaco,
+            "Età massima Giunta Comunale (anni)": eta_max_giunta,
+            "Età media Giunta Comunale (anni)": eta_mean_giunta,
+            "Età minima Giunta Comunale (anni)": eta_min_giunta,
+            "Età massima Consiglio Comunale (anni)": eta_max_consiglio,
+            "Età media Consiglio Comunale (anni)": eta_mean_consiglio,
+            "Età minima Consiglio Comunale (anni)": eta_min_consiglio,
+            "Uomini Giunta Comunale (%)": perc_giunta["uomini"],
+            "Donne Giunta Comunale (%)": perc_giunta["donne"],
+            "Uomini Consiglio Comunale (%)": perc_consiglio["uomini"],
+            "Donne Consiglio Comunale (%)": perc_consiglio["donne"],
+            "Under35 Giunta Comunale (%)": under35_giunta,
+            "Under35 Consiglio Comunale (%)": under35_consiglio,
+        })
+    
+    
+        # Update progress
+        progress_bar.progress((i + 1) / total_years)
+    
+    
+    # =========================
+    # Final dataframe
+    # =========================
+    
+    progress_bar.empty()
+    status_text.success("Elaborazione completata!")
+    
+    df_evoluzione = pd.DataFrame(rows_evoluzione)
+    
+    st.subheader(f"Evoluzione degli Organi Comunali di {comune}")
+    
+    st.dataframe(
+        df_evoluzione,
+        use_container_width=True,
+        hide_index=True
+    )
+
 def pagina_popolazione_comuni():
 
     st.subheader("Comuni italiani per popolazione")
