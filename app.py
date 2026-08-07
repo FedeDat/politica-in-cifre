@@ -1149,57 +1149,72 @@ def pagina_anagrafiche_comuni():
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi della composizione delle Giunte e dei Consigli Comunali dal 1986.")
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
 
-    years = np.arange(1986, datetime.now().year+1)
+    # =========================
+    # Year selection
+    # =========================
+    
+    years = list(range(1986, datetime.now().year + 1))
     
     year = st.selectbox(
         "Seleziona o digita l'anno di riferimento",
         options=years,
         key="selected_year"
     )
-
+    
     # =========================
     # Progress bar
     # =========================
+    
     progress = st.progress(0)
     status = st.empty()
-
+    
     status.text("Scaricamento dati amministratori comunali...")
     progress.progress(10)
     
-    df = extract_dataset_amministratori_comunali(get_url_amministratori_comunali(year))
-
+    df = extract_dataset_amministratori_comunali(
+        get_url_amministratori_comunali(year)
+    )
+    
     progress.progress(30)
     status.text("Preparazione elenco comuni...")
-
+    
+    
     # =========================
     # Municipality selection with memory by year
     # =========================
     
     comuni = sorted(df["comune"].dropna().unique())
     
+    # Dictionary storing selected comune for each year
     if "comuni_per_anno" not in st.session_state:
         st.session_state.comuni_per_anno = {}
     
-    # key for current year
-    comune_key = f"comune_{int(year)}"
+    # Store last processed year
+    if "ultimo_anno_comune" not in st.session_state:
+        st.session_state.ultimo_anno_comune = None
     
-    # initialize widget value only once for this year
-    if comune_key not in st.session_state:
-        comune_salvato = st.session_state.comuni_per_anno.get(int(year))
+    
+    # When year changes, restore previous municipality
+    if st.session_state.ultimo_anno_comune != year:
+    
+        comune_salvato = st.session_state.comuni_per_anno.get(year)
     
         if comune_salvato in comuni:
-            st.session_state[comune_key] = comune_salvato
+            st.session_state.selected_comune = comune_salvato
         else:
-            st.session_state[comune_key] = comuni[0]
+            st.session_state.selected_comune = comuni[0]
+    
+        st.session_state.ultimo_anno_comune = year
+    
     
     comune = st.selectbox(
         "Seleziona o digita il Comune",
         options=comuni,
-        key=comune_key
+        key="selected_comune"
     )
     
-    # save selection
-    st.session_state.comuni_per_anno[int(year)] = comune
+    # Save current selection for this year
+    st.session_state.comuni_per_anno[year] = comune
 
     progress.progress(40)
     status.text(f"Analisi del comune: {comune}...")
