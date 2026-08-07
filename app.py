@@ -403,31 +403,39 @@ def scrape_all_single(name, progress_bar=None, status=None):
 
 @st.cache_data
 def get_url_amministratori_comunali(year):
-    
+
     BASE = "https://dait.interno.gov.it/documenti"
 
-    found = False  # tracks if we already found a file for this year
-
     for prefix in ("", "_"):
-        if found:
-            break
-
         for suffix in ("_0", "", "_1"):
-            url = f"{BASE}/storico_amministratori_comuni{prefix}3112{year}{suffix}.csv"
+
+            url = (
+                f"{BASE}/"
+                f"storico_amministratori_comuni"
+                f"{prefix}3112{year}{suffix}.csv"
+            )
 
             try:
-                r = requests.head(url, allow_redirects=True, timeout=10)
+                r = requests.head(
+                    url,
+                    allow_redirects=True,
+                    timeout=10
+                )
 
                 if r.status_code == 405:
-                    r = requests.get(url, stream=True, timeout=10)
+                    r = requests.get(
+                        url,
+                        stream=True,
+                        timeout=10
+                    )
 
                 if r.status_code == 200:
                     return url
-                    found = True  # stop searching this year
-                    break
 
             except requests.RequestException:
                 pass
+
+    return None
 
 def extract_dataset_amministratori_comunali(url):
 
@@ -1168,6 +1176,11 @@ def pagina_anagrafiche_comuni():
     
     status.text("Scaricamento dati amministratori comunali...")
     progress.progress(10)
+
+    if year != current_year
+        url_dataset=get_url_amministratori_comunali(year)
+    else:
+        url_dataset="http://dait.interno.gov.it/documenti/ammcom.csv"
     
     df = extract_dataset_amministratori_comunali(
         get_url_amministratori_comunali(year)
