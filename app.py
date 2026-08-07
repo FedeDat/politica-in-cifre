@@ -1620,7 +1620,7 @@ def pagina_evoluzione_comuni():
         divider=True
     )
 
-    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi l'evoluzione della composizione delle Giunte e dei Consigli Comunali dal 1986.")
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce l'evoluzione della composizione delle Giunte e dei Consigli Comunali dal 1986.")
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
     
     current_year = datetime.now().year
@@ -1637,8 +1637,7 @@ def pagina_evoluzione_comuni():
 
     comune = st.selectbox(
         "Seleziona o digita il Comune",
-        options=comuni,
-        index=default_index,
+        options=comuni
     )
     
     start_year, end_year = st.slider(
