@@ -1663,7 +1663,7 @@ def pagina_evoluzione_comuni():
     
         df_comune = df.loc[df["comune"].eq(comune)].copy()
     
-        if df_comune.empty:
+        if df_comune.shape[0] <= 1:
             status_text.warning(f"Nessun dato trovato per {comune} nel {year}")
             progress_bar.progress((i + 1) / total_years)
             continue
