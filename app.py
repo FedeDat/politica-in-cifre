@@ -223,7 +223,7 @@ def _birth_worker(nome):
         return None
 
 
-@st.cache_data(show_spinner=True)
+@st.cache_data(show_spinner=False)
 def get_birthdays_table():
 
     nomi = get_councillors()["Nominativo"].tolist()
@@ -401,7 +401,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
 # Load data (cached) per Consigliature Comunali
 # =========================
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_url_amministratori_comunali(year):
 
     if year == datetime.now().year:
@@ -1659,7 +1659,7 @@ def pagina_evoluzione_comuni():
     
     for i, year in enumerate(range(start_year, end_year + 1)):
     
-        status_text.write(f"Elaborazione anno {year} ({i+1}/{total_years})...")
+        status_text.write(f"Elaborazione anno {year}...")
     
         df = extract_restricted_dataset_amministratori_comunali(
             get_url_amministratori_comunali(year)
@@ -1835,27 +1835,25 @@ def pagina_evoluzione_comuni():
             else len(consiglio)
         )
     
-    
         rows_evoluzione.append({
             "Anno": year,
-            "Popolazione censita": popolazione,
-            "Numero assessori": numero_assessori,
-            "Numero consiglieri": numero_consiglieri,
+            "Popolazione": popolazione,
+            "Assessori": numero_assessori,
+            "Consiglieri": numero_consiglieri,
             "Età Sindaco (anni)": eta_sindaco,
-            "Età massima Giunta Comunale (anni)": eta_max_giunta,
-            "Età media Giunta Comunale (anni)": eta_mean_giunta,
-            "Età minima Giunta Comunale (anni)": eta_min_giunta,
-            "Età massima Consiglio Comunale (anni)": eta_max_consiglio,
-            "Età media Consiglio Comunale (anni)": eta_mean_consiglio,
-            "Età minima Consiglio Comunale (anni)": eta_min_consiglio,
-            "Uomini Giunta Comunale (%)": perc_giunta["uomini"],
-            "Donne Giunta Comunale (%)": perc_giunta["donne"],
-            "Uomini Consiglio Comunale (%)": perc_consiglio["uomini"],
-            "Donne Consiglio Comunale (%)": perc_consiglio["donne"],
-            "Under35 Giunta Comunale (%)": under35_giunta,
-            "Under35 Consiglio Comunale (%)": under35_consiglio,
+            "Età massima Giunta (anni)": eta_max_giunta,
+            "Età media Giunta (anni)": eta_mean_giunta,
+            "Età minima Giunta (anni)": eta_min_giunta,
+            "Età massima Consiglio (anni)": eta_max_consiglio,
+            "Età media Consiglio (anni)": eta_mean_consiglio,
+            "Età minima Consiglio (anni)": eta_min_consiglio,
+            "Uomini Giunta (%)": perc_giunta["uomini"],
+            "Donne Giunta (%)": perc_giunta["donne"],
+            "Uomini Consiglio (%)": perc_consiglio["uomini"],
+            "Donne Consiglio (%)": perc_consiglio["donne"],
+            "Under35 Giunta (%)": under35_giunta,
+            "Under35 Consiglio (%)": under35_consiglio,
         })
-    
     
         # Update progress
         progress_bar.progress((i + 1) / total_years)
@@ -1871,7 +1869,8 @@ def pagina_evoluzione_comuni():
     df_evoluzione = pd.DataFrame(rows_evoluzione)
     
     st.subheader(f"Evoluzione degli Organi Comunali di {comune}")
-    
+
+    st.info("ℹ️ Valori calcolati alla data dell'elezione.")
     st.dataframe(
         df_evoluzione,
         use_container_width=True,
@@ -1960,7 +1959,7 @@ def pagina_popolazione_comuni():
     # =====================================================
     # DATASET
     # =====================================================
-    @st.cache_data
+    @st.cache_data(show_spinner=False)
     def build_dataset(years):
 
         all_data = []
