@@ -1154,6 +1154,8 @@ def pagina_anagrafiche_comuni():
     # =========================
     
     years = list(range(1986, datetime.now().year + 1))
+
+    current_year = datetime.now().year
     
     year = st.selectbox(
         "Seleziona o digita l'anno di riferimento",
