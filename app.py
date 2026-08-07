@@ -1643,7 +1643,7 @@ def pagina_evoluzione_comuni():
         value=(2010,current_year)
     )
 
-    st.write(f"Comune selezionato: {comune}; Periodo selezionato: {start_year} - {end_year}")
+    st.write(f"Comune selezionato: {comune}. Periodo selezionato: {start_year} - {end_year}.")
 
     rows_evoluzione = []
     
