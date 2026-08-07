@@ -1169,11 +1169,34 @@ def pagina_anagrafiche_comuni():
 
     progress.progress(30)
     status.text("Preparazione elenco comuni...")
+
+    # =========================
+    # Municipality selection with memory by year
+    # =========================
     
-    # =========================
-    # Municipality selection (no default city)
-    # =========================
     comuni = sorted(df["comune"].dropna().unique())
+    
+    # memoria dei comuni scelti per anno
+    if "comuni_per_anno" not in st.session_state:
+        st.session_state.comuni_per_anno = {}
+    
+    # valore già salvato per questo anno
+    comune_precedente = st.session_state.comuni_per_anno.get(year)
+    
+    # se il comune esiste ancora nei dati dell'anno selezionato lo proponiamo
+    if comune_precedente in comuni:
+        indice_default = comuni.index(comune_precedente)
+    else:
+        indice_default = 0
+    
+    comune = st.selectbox(
+        "Seleziona o digita il Comune",
+        options=comuni,
+        index=indice_default
+    )
+    
+    # aggiorna memoria
+    st.session_state.comuni_per_anno[year] = comune
     
     comune = st.selectbox(
         "Seleziona o digita il Comune",
