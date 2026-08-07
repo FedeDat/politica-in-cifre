@@ -1158,7 +1158,7 @@ def pagina_anagrafiche_comuni():
     year = st.selectbox(
         "Seleziona o digita l'anno di riferimento",
         options=years,
-        key="selected_year"
+        index=years.index(current_year)
     )
     
     # =========================
@@ -1178,43 +1178,16 @@ def pagina_anagrafiche_comuni():
     progress.progress(30)
     status.text("Preparazione elenco comuni...")
     
-    
     # =========================
-    # Municipality selection with memory by year
+    # Municipality selection
     # =========================
     
     comuni = sorted(df["comune"].dropna().unique())
     
-    # Dictionary storing selected comune for each year
-    if "comuni_per_anno" not in st.session_state:
-        st.session_state.comuni_per_anno = {}
-    
-    # Store last processed year
-    if "ultimo_anno_comune" not in st.session_state:
-        st.session_state.ultimo_anno_comune = None
-    
-    
-    # When year changes, restore previous municipality
-    if st.session_state.ultimo_anno_comune != year:
-    
-        comune_salvato = st.session_state.comuni_per_anno.get(year)
-    
-        if comune_salvato in comuni:
-            st.session_state.selected_comune = comune_salvato
-        else:
-            st.session_state.selected_comune = comuni[0]
-    
-        st.session_state.ultimo_anno_comune = year
-    
-    
     comune = st.selectbox(
         "Seleziona o digita il Comune",
         options=comuni,
-        key="selected_comune"
     )
-    
-    # Save current selection for this year
-    st.session_state.comuni_per_anno[year] = comune
 
     progress.progress(40)
     status.text(f"Analisi del comune: {comune}...")
