@@ -398,22 +398,141 @@ def scrape_all_single(name, progress_bar=None, status=None):
 # =========================
 # Load data (cached) per Consigliature Comunali
 # =========================
+
 @st.cache_data
-def load_data():
-    base_url = "https://dait.interno.gov.it/documenti/"
-    target_url = "ammcom.csv"
-    csv_url = base_url + target_url
+def get_url_amministratori_comunali(year):
+    
+    BASE = "https://dait.interno.gov.it/documenti"
+
+    found = False  # tracks if we already found a file for this year
+
+    for prefix in ("", "_"):
+        if found:
+            break
+
+        for suffix in ("_0", "", "_1"):
+            url = f"{BASE}/storico_amministratori_comuni{prefix}3112{year}{suffix}.csv"
+
+            try:
+                r = requests.head(url, allow_redirects=True, timeout=10)
+
+                if r.status_code == 405:
+                    r = requests.get(url, stream=True, timeout=10)
+
+                if r.status_code == 200:
+                    return url
+                    found = True  # stop searching this year
+                    break
+
+            except requests.RequestException:
+                pass
+
+def extract_dataset_amministratori_comunali(url):
+
+    # Desired final column names
+    rename_columns = {
+        "descrizione_comune": "comune",
+        "sigla_provincia": "provincia",
+        "popolazione_censita_alla_data_elezione": "popolazione",
+        "data_elezione": "elezione",
+        "consiglieri_spettanti": "consiglieri",
+        "assessori_assegnati": "assessori",
+        "cognome": "cognome",
+        "nome": "nome",
+        "sesso": "sesso",
+        "data_nascita": "nascita",
+        "descrizione_carica": "carica",
+        "incarico": "incarico",
+        "lista_appartenenza/collegamento": "lista"
+    }
+    
+    # Aliases for columns that can have different original names
+    # The key is the standard name; the list contains possible source names.
+    column_aliases = {
+        "descrizione_comune": [
+            "descrizione_comune",
+            "denominazione_comune"
+            ],
+        "popolazione_censita_alla_data_elezione": [
+            "popolazione_censita_alla_data_elezione",
+            "popolazione_censita"
+            ],
+        "lista_appartenenza/collegamento": [
+            "lista_appartenenza/collegamento",
+            "partito_lista_coalizione"
+            ]
+    }
+    
+    rows_to_skip=0
+
+# Read header first
+    header = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        nrows=0
+    ).columns
+
+    if len(header)==1:
+        header = pd.read_csv(
+            url,
+            sep=";",
+            encoding="latin1",
+            nrows=0,
+            skiprows=2
+        ).columns
+
+        rows_to_skip=2
+
+    # Case-insensitive mapping: lowercase -> actual column name
+    header_lower = {col.lower(): col for col in header}
+
+    # Find the actual source columns
+    source_columns = {}
+
+    for standard_name in rename_columns:
+
+        # Use aliases if defined, otherwise use the standard name
+        possible_names = column_aliases.get(
+            standard_name,
+            [standard_name]
+        )
+
+        for possible_name in possible_names:
+            if possible_name.lower() in header_lower:
+                source_columns[standard_name] = header_lower[
+                    possible_name.lower()
+                ]
+                break
+
+    # Columns to import
+    usecols = list(source_columns.values())
 
     df = pd.read_csv(
-        csv_url,
+        url,
         sep=";",
-        skiprows=2,
+        encoding="latin1",
+        usecols=usecols,
+        skiprows=rows_to_skip,
         quotechar='"',
-        encoding="utf-8",
         low_memory=False,
         keep_default_na=False,
         na_values=[""]
+        #encoding="utf-8",
     )
+
+    # Rename source columns to standardized names
+    df = df.rename(
+        columns={
+            source_column: rename_columns[standard_name]
+            for standard_name, source_column in source_columns.items()
+        }
+    )
+
+    # If "incarico" does not exist in the source, create it with null values
+    if "incarico" not in df.columns:
+        df["incarico"] = pd.NA
+
     return df
 
 # --- ELENCHI UFFICIALI (MAPPATURA DELLE TIPOLOGIE) ---
@@ -1025,15 +1144,22 @@ def pagina_anagrafiche_comuni():
         divider=True
     )
 
-    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce anali della composizione delle Giunte e dei Consigli Comunali.")
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi della composizione delle Giunte e dei Consigli Comunali dal 1986.")
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
+
+    years = np.arange(1986, datetime.now().year+1)
     
-    df = load_data()
+    year = st.selectbox(
+        "Seleziona o digita l'anno di riferimento",
+        options=years
+    )
+    
+    df = extract_dataset_amministratori_comunali(get_url_amministratori_comunali(year))
     
     # =========================
     # Municipality selection (no default city)
     # =========================
-    comuni = sorted(df["denominazione_comune"].dropna().unique())
+    comuni = sorted(df["comune"].dropna().unique())
     
     comune = st.selectbox(
         "Seleziona o digita il Comune",
@@ -1043,49 +1169,56 @@ def pagina_anagrafiche_comuni():
     # =========================
     # Filter
     # =========================
-    df_comune = df.loc[df["denominazione_comune"].eq(comune)].copy()
+    df_comune = df.loc[df["comune"].eq(comune)].copy()
 
     url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0])
 
-    popolazione = int(df_comune["popolazione_censita_alla_data_elezione"].iloc[0])
-    
     if df_comune.empty:
-        st.warning("Nessun dato disponibile per il comune selezionato.")
-        st.stop()
+    st.warning("Nessun dato disponibile per il comune selezionato.")
+    st.stop()
     
+    popolazione = int(df_comune["popolazione"].iloc[0])
+
     # =========================
-    # Dates and age
+    # Age calculator
     # =========================
-    df_comune["data_nascita"] = pd.to_datetime(
-        df_comune["data_nascita"],
+
+    data_elezione_0 = df_comune["elezione"].iloc[0]
+    
+    data_elezione = (
+        pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
+        if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
+        else ""
+    )
+    
+    df_comune["nascita"] = pd.to_datetime(
+        df_comune["nascita"],
         dayfirst=True,
         errors="coerce"
     )
-
-    df_comune.loc[(df_comune["nome"] == "SIMONE") & (df_comune["cognome"] == "FISSOLO") & (df_comune["denominazione_comune"] == "TORINO"),
-    "data_nascita"] = pd.Timestamp("1989-05-31")
     
-    oggi = pd.Timestamp.today().normalize()
+    df_comune.loc[(df_comune["nome"] == "SIMONE") & (df_comune["cognome"] == "FISSOLO") & (df_comune["comune"] == "TORINO"),
+    "nascita"] = pd.Timestamp("1989-05-31")
     
     df_comune["eta"] = (
-        oggi.year
-        - df_comune["data_nascita"].dt.year
+        data_elezione.year
+        - df_comune["nascita"].dt.year
         - (
-            (oggi.month < df_comune["data_nascita"].dt.month)
+            (data_elezione.month < df_comune["nascita"].dt.month)
             | (
-                (oggi.month == df_comune["data_nascita"].dt.month)
-                & (oggi.day < df_comune["data_nascita"].dt.day)
+                (data_elezione.month == df_comune["nascita"].dt.month)
+                & (data_elezione.day < df_comune["nascita"].dt.day)
             )
         )
     ).astype("Int64")
-    
+
     # =========================
     # Role handling
     # =========================
-    df_comune["ruolo"] = df_comune["descrizione_carica"]
+    df_comune["ruolo"] = df_comune["carica"]
     
     mask = (
-        df_comune["descrizione_carica"].eq("Assessore")
+        df_comune["carica"].fillna("").str.contains("assessore", case=False)
         & df_comune["incarico"].fillna("").str.contains("vicesindaco", case=False)
     )
     
@@ -1094,10 +1227,8 @@ def pagina_anagrafiche_comuni():
     # =========================
     # Subsets
     # =========================
-
-    subset = ["denominazione_comune", "cognome", "nome"]
     
-    subset = ["denominazione_comune", "cognome", "nome"]
+    subset = ["comune", "cognome", "nome"]
     
     sindaco = (
         df_comune[df_comune["ruolo"] == "Sindaco"]
@@ -1113,7 +1244,7 @@ def pagina_anagrafiche_comuni():
         df_comune[df_comune["ruolo"].str.contains("Consigliere", na=False)]
         .drop_duplicates(subset=subset)
     )
-    
+
     # =========================
     # Safe indicators
     # =========================
@@ -1123,16 +1254,8 @@ def pagina_anagrafiche_comuni():
     eta_media_giunta = giunta["eta"].mean()
     eta_media_consiglio = consiglio["eta"].mean()
 
-    data_elezione_0 = df_comune["data_elezione"].iloc[0]
-
-    data_elezione = (
-        pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
-        if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
-        else ""
-    )
-
-    if not df_comune.empty and "consiglieri_spettanti" in df_comune.columns:
-        numero_consiglieri_0 = df_comune["consiglieri_spettanti"].iloc[0]
+    if not df_comune.empty and "consiglieri" in df_comune.columns:
+        numero_consiglieri_0 = df_comune["consiglieri"].iloc[0]
         try:
             numero_consiglieri = int(numero_consiglieri_0)
         except (ValueError, TypeError):
@@ -1140,15 +1263,15 @@ def pagina_anagrafiche_comuni():
     else:
         numero_consiglieri = int(len(consiglio))
     
-    if not df_comune.empty and "assessori_assegnati" in df_comune.columns:
-        numero_assessori_0 = df_comune["assessori_assegnati"].iloc[0]
+    if not df_comune.empty and "assessori" in df_comune.columns:
+        numero_assessori_0 = df_comune["assessori"].iloc[0]
         try:
             numero_assessori = int(numero_assessori_0)
         except (ValueError, TypeError):
             numero_assessori = ""
     else:
         numero_assessori = int(len(giunta) - 1)
-    
+
     def percentuali_sesso(df_tmp):
         if df_tmp.empty:
             return {"uomini": 0, "donne": 0}
@@ -1158,7 +1281,6 @@ def pagina_anagrafiche_comuni():
             "uomini": round(p.get("M", 0), 1),
             "donne": round(p.get("F", 0), 1),
         }
-    
     
     def percentuale_under_35(df_tmp):
         if df_tmp.empty:
@@ -1170,6 +1292,8 @@ def pagina_anagrafiche_comuni():
     
     under35_giunta = percentuale_under_35(giunta)
     under35_consiglio = percentuale_under_35(consiglio)
+  
+    print(year,"Età sindaco", eta_sindaco, "Under35 Giunta", under35_giunta, "Under 35 Consiglio",under35_consiglio)
     
     # =========================
     # ROLE ORDER
@@ -1191,38 +1315,38 @@ def pagina_anagrafiche_comuni():
     df_ridotto = (
         df_comune[
             [
-                "denominazione_comune",
+                "comune",
                 "nome",
                 "cognome",
                 "ruolo",
                 "sesso",
                 "eta",
-                "lista_appartenenza/collegamento",
+                "lista",
                 "ruolo_ordine",
             ]
         ]
-        .groupby(["denominazione_comune", "cognome", "nome"], as_index=False)
+        .groupby(["comune", "cognome", "nome"], as_index=False)
         .agg(
             {
                 "ruolo": "first",
                 "sesso": "first",
                 "eta": "first",
                 "ruolo_ordine": "first",
-                "lista_appartenenza/collegamento": lambda s: s.dropna().iloc[0] if not s.dropna().empty else None,
+                "lista": lambda s: s.dropna().iloc[0] if not s.dropna().empty else None,
             }
         )
         .rename(
             columns={
-                "lista_appartenenza/collegamento": "Gruppo consiliare",
+                "lista": "Gruppo consiliare",
                 "nome": "Nome",
                 "cognome": "Cognome",
                 "ruolo": "Carica",
                 "sesso": "Genere",
-                "eta": "Età",
+                "eta": "Età (all'elezione)",
             }
         )
         .sort_values(by=["ruolo_ordine", "Cognome", "Nome"], ignore_index=True)
-        .drop(columns=["denominazione_comune", "ruolo_ordine"])
+        .drop(columns=["comune", "ruolo_ordine"])
         .assign(
             **{
                 "Gruppo consiliare": lambda x: x["Gruppo consiliare"].fillna("Non indicato")
@@ -1240,12 +1364,12 @@ def pagina_anagrafiche_comuni():
         
         if url_comune is not None:
             # URL exists: Display the info message with a clickable markdown link
-            st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune})")
+            st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune}).")
         else:
             # URL is None: Display alternative fallback text
             st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
 
-    st.metric(f"Popolazione residente (censimento ISTAT 2011)", popolazione if popolazione is not None else "N/D")
+    st.metric(f"Popolazione residente (censita all'elezione)", popolazione if popolazione is not None else "N/D")
 
     col1, col2, col3 = st.columns(3)
     
