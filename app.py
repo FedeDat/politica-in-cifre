@@ -1174,8 +1174,8 @@ def pagina_anagrafiche_comuni():
     url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0])
 
     if df_comune.empty:
-    st.warning("Nessun dato disponibile per il comune selezionato.")
-    st.stop()
+        st.warning("Nessun dato disponibile per il comune selezionato.")
+        st.stop()
     
     popolazione = int(df_comune["popolazione"].iloc[0])
 
