@@ -1336,8 +1336,6 @@ def pagina_anagrafiche_comuni():
     
     under35_giunta = percentuale_under_35(giunta)
     under35_consiglio = percentuale_under_35(consiglio)
-  
-    print(year,"Età sindaco", eta_sindaco, "Under35 Giunta", under35_giunta, "Under 35 Consiglio",under35_consiglio)
     
     # =========================
     # ROLE ORDER
