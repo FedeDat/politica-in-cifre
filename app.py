@@ -404,7 +404,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
 @st.cache_data
 def get_url_amministratori_comunali(year):
 
-    if year != datetime.now().year:
+    if year == datetime.now().year:
         url = "http://dait.interno.gov.it/documenti/ammcom.csv"
         return url
 
