@@ -1170,7 +1170,7 @@ def pagina_anagrafiche_comuni():
     progress.progress(30)
     status.text("Preparazione elenco comuni...")
 
-   # =========================
+    # =========================
     # Municipality selection with memory by year
     # =========================
     
@@ -1179,20 +1179,25 @@ def pagina_anagrafiche_comuni():
     if "comuni_per_anno" not in st.session_state:
         st.session_state.comuni_per_anno = {}
     
-    comune_precedente = st.session_state.comuni_per_anno.get(int(year))
+    # key for current year
+    comune_key = f"comune_{int(year)}"
     
-    if comune_precedente in comuni:
-        indice_default = comuni.index(comune_precedente)
-    else:
-        indice_default = 0
+    # initialize widget value only once for this year
+    if comune_key not in st.session_state:
+        comune_salvato = st.session_state.comuni_per_anno.get(int(year))
+    
+        if comune_salvato in comuni:
+            st.session_state[comune_key] = comune_salvato
+        else:
+            st.session_state[comune_key] = comuni[0]
     
     comune = st.selectbox(
         "Seleziona o digita il Comune",
         options=comuni,
-        index=indice_default,
-        key=f"comune_{year}"
+        key=comune_key
     )
     
+    # save selection
     st.session_state.comuni_per_anno[int(year)] = comune
 
     progress.progress(40)
