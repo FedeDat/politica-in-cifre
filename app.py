@@ -1172,7 +1172,7 @@ def pagina_anagrafiche_comuni():
     # =========================
     df_comune = df.loc[df["comune"].eq(comune)].copy()
 
-    url_comune = get_valid_municipality_url(comune, df_comune["sigla_provincia"].iloc[0])
+    url_comune = get_valid_municipality_url(comune, df_comune["provincia"].iloc[0])
 
     if df_comune.empty:
         st.warning("Nessun dato disponibile per il comune selezionato.")
