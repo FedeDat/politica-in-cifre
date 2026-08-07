@@ -8,6 +8,7 @@ import fitz
 import zipfile
 import unicodedata
 import time
+import plotly.express as px
 
 from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
