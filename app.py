@@ -1527,7 +1527,7 @@ def pagina_evoluzione_comuni():
         "Seleziona il periodo per l'analisi",
         min_value=1986,
         max_value=current_year,
-        value=(2000, 2020)
+        value=(2010,current_year)
     )
     
     st.write(f"Periodo selezionato: {start_year} - {end_year}")
