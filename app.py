@@ -942,12 +942,11 @@ L'applicazione integra automaticamente informazioni provenienti da siti istituzi
         st.write("Sono disponibili moduli per:")
 
         st.markdown("""
-- Analizzare Sindaci, Giunte e Consigli Comunali.
-- Calcolare indicatori demografici degli amministratori.
-- Misurare la rappresentanza di genere e degli Under 35.
+- Analizzare Sindaci, Giunte e Consigli Comunali dal 1986 ad oggi.
+- Calcolare indicatori demografici degli amministratori dal 1986 ad oggi.
+- Misurare la rappresentanza di genere e degli Under 35 dal 1986 ad oggi.
+- Visualizzare la composizione politica degli organi comunali dal 1986 ad oggi.
 - Consultare le indennità previste dalla normativa nazionale.
-- Visualizzare la composizione politica degli organi comunali.
-- Analizzare l'andamento della popolazione nel tempo.
 """)
 
     st.divider()
@@ -1039,13 +1038,17 @@ def pagina_demo():
 
     st.image("images/2_demo_anagrafica-consiglieri-regionali.png", use_container_width=800)
 
-    st.markdown("Accedendo al modulo **Anagrafica Organi Comunali** è possibile consultare i parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani.")
+    st.markdown("Accedendo al modulo **Anagrafica Organi Comunali** è possibile consultare i parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani (dal 1986 ad oggi).")
 
     st.image("images/3_demo_anagrafica-organi-comunali.png", use_container_width=800)
 
+    st.markdown("Accedendo al modulo **Evoluzione Anagrafica Organi Comunali** è possibile consultare l'andamento dei parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani (dal 1986 ad oggi).")
+
+    #st.image("images/4_demo_evoluzione_anagrafica-organi-comunali.png", use_container_width=800)
+
     st.markdown("Accedendo al modulo **Comuni italiani per popolazione** è possibile consultare andamento della popolazione, nuove nascite e emigrazione verso l'estero per i Comuni italiani.")
 
-    st.image("images/4_demo_andamento-popolazione-comuni.png", use_container_width=800)
+    st.image("images/5_demo_andamento-popolazione-comuni.png", use_container_width=800)
 
 def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
