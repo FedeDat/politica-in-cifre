@@ -551,6 +551,108 @@ def extract_dataset_amministratori_comunali(url):
 
     return df
 
+def extract_restricted_dataset_amministratori_comunali(url):
+
+    # Desired final column names
+    rename_columns = {
+        "descrizione_comune": "comune",
+        "popolazione_censita_alla_data_elezione": "popolazione",
+        "data_elezione": "elezione",
+        "consiglieri_spettanti": "consiglieri",
+        "assessori_assegnati": "assessori",
+        "nome": "nome",
+        "cognome": "cognome",
+        "sesso": "sesso",
+        "data_nascita": "nascita",
+        "descrizione_carica": "carica",
+        "incarico": "incarico"
+    }
+    
+    # Aliases for columns that can have different original names
+    # The key is the standard name; the list contains possible source names.
+    column_aliases = {
+        "descrizione_comune": [
+            "descrizione_comune",
+            "denominazione_comune"
+            ],
+        "popolazione_censita_alla_data_elezione": [
+            "popolazione_censita_alla_data_elezione",
+            "popolazione_censita"
+            ]
+    }
+    
+    rows_to_skip=0
+
+# Read header first
+    header = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        nrows=0
+    ).columns
+
+    if len(header)==1:
+        header = pd.read_csv(
+            url,
+            sep=";",
+            encoding="latin1",
+            nrows=0,
+            skiprows=2
+        ).columns
+
+        rows_to_skip=2
+
+    # Case-insensitive mapping: lowercase -> actual column name
+    header_lower = {col.lower(): col for col in header}
+
+    # Find the actual source columns
+    source_columns = {}
+
+    for standard_name in rename_columns:
+
+        # Use aliases if defined, otherwise use the standard name
+        possible_names = column_aliases.get(
+            standard_name,
+            [standard_name]
+        )
+
+        for possible_name in possible_names:
+            if possible_name.lower() in header_lower:
+                source_columns[standard_name] = header_lower[
+                    possible_name.lower()
+                ]
+                break
+
+    # Columns to import
+    usecols = list(source_columns.values())
+
+    df = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        usecols=usecols,
+        skiprows=rows_to_skip,
+        quotechar='"',
+        low_memory=False,
+        keep_default_na=False,
+        na_values=[""]
+        #encoding="utf-8",
+    )
+
+    # Rename source columns to standardized names
+    df = df.rename(
+        columns={
+            source_column: rename_columns[standard_name]
+            for standard_name, source_column in source_columns.items()
+        }
+    )
+
+    # If "incarico" does not exist in the source, create it with null values
+    if "incarico" not in df.columns:
+        df["incarico"] = pd.NA
+
+    return df
+
 # --- ELENCHI UFFICIALI (MAPPATURA DELLE TIPOLOGIE) ---
 CITTA_METROPOLITANE = [
     "Bari", "Bologna", "Cagliari", "Catania", "Firenze", "Genova", 
@@ -1522,6 +1624,24 @@ def pagina_evoluzione_comuni():
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
     
     current_year = datetime.now().year
+
+    df_names = extract_restricted_dataset_amministratori_comunali(
+        get_url_amministratori_comunali(current_year)
+    )
+    
+    status.text("Preparazione elenco comuni...")
+    
+    # =========================
+    # Municipality selection
+    # =========================
+    
+    comuni = sorted(df_names["comune"].dropna().unique())
+
+    comune = st.selectbox(
+        "Seleziona o digita il Comune",
+        options=comuni,
+        index=default_index,
+    )
     
     start_year, end_year = st.slider(
         "Seleziona il periodo per l'analisi",
@@ -1529,8 +1649,8 @@ def pagina_evoluzione_comuni():
         max_value=current_year,
         value=(2010,current_year)
     )
-    
-    st.write(f"Periodo selezionato: {start_year} - {end_year}")
+
+    st.write(f"Comune selezionato: {comune}"; Periodo selezionato: {start_year} - {end_year}")
 
 def pagina_popolazione_comuni():
 
