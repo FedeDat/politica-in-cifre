@@ -556,7 +556,6 @@ def extract_restricted_dataset_amministratori_comunali(url):
     # Desired final column names
     rename_columns = {
         "descrizione_comune": "comune",
-        "popolazione_censita_alla_data_elezione": "popolazione",
         "data_elezione": "elezione",
         "consiglieri_spettanti": "consiglieri",
         "assessori_assegnati": "assessori",
@@ -574,10 +573,6 @@ def extract_restricted_dataset_amministratori_comunali(url):
         "descrizione_comune": [
             "descrizione_comune",
             "denominazione_comune"
-            ],
-        "popolazione_censita_alla_data_elezione": [
-            "popolazione_censita_alla_data_elezione",
-            "popolazione_censita"
             ]
     }
     
@@ -1672,8 +1667,6 @@ def pagina_evoluzione_comuni():
             progress_bar.progress((i + 1) / total_years)
             continue
     
-        popolazione = int(df_comune["popolazione"].iloc[0])
-    
         # =========================
         # Age calculator
         # =========================
@@ -1837,7 +1830,6 @@ def pagina_evoluzione_comuni():
     
         rows_evoluzione.append({
             "Anno": year,
-            "Popolazione": popolazione,
             "Assessori": numero_assessori,
             "Consiglieri": numero_consiglieri,
             "Età Sindaco (anni)": eta_sindaco,
