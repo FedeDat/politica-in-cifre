@@ -1149,11 +1149,7 @@ def pagina_anagrafiche_comuni():
     st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi della composizione delle Giunte e dei Consigli Comunali dal 1986.")
     st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
 
-    # =========================
-    # Year selection
-    # =========================
-    
-    years = list(range(1986, datetime.now().year + 1))
+years = list(range(1986, datetime.now().year + 1))
 
     current_year = datetime.now().year
     
@@ -1190,7 +1186,7 @@ def pagina_anagrafiche_comuni():
         "Seleziona o digita il Comune",
         options=comuni,
     )
-
+    
     progress.progress(40)
     status.text(f"Analisi del comune: {comune}...")
     
