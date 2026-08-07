@@ -1358,7 +1358,7 @@ def pagina_anagrafiche_comuni():
         "Vicesindaco": 1,
     }
     
-    df_comune["ordine_ruolo"] = (
+    df_comune["ruolo_ordine"] = (
         df_comune["ruolo"]
         .apply(
             lambda x: 2
@@ -1366,8 +1366,6 @@ def pagina_anagrafiche_comuni():
             else ordine_ruoli.get(x, 3)
         )
     )
-        
-    df_comune["ruolo_ordine"] = df_comune["ruolo"].map(ordine_ruoli).fillna(3)
 
     progress.progress(80)
     status.text("Creazione tabella finale...")
