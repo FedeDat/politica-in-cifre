@@ -1153,7 +1153,8 @@ def pagina_anagrafiche_comuni():
     
     year = st.selectbox(
         "Seleziona o digita l'anno di riferimento",
-        options=years
+        options=years,
+        key="selected_year"
     )
 
     # =========================
