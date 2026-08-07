@@ -802,6 +802,7 @@ pagina = st.sidebar.selectbox(
         "Analizzatore Cedolini",
         "Anagrafica Consiglieri Regionali",
         "Anagrafica Organi Comunali",
+        "Evoluzione Organi Comunali",
         "Comuni italiani per popolazione"
     ]
 )
@@ -1508,6 +1509,18 @@ def pagina_anagrafiche_comuni():
     st.dataframe(df_risultato, width="stretch", hide_index=True)
     st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
 
+def pagina_evoluzione_comuni():
+    current_year = datetime.now().year
+    
+    start_year, end_year = st.slider(
+        "Select year range",
+        min_value=1986,
+        max_value=current_year,
+        value=(2000, 2020)
+    )
+    
+    st.write(f"Selected period: {start_year} - {end_year}")
+
 def pagina_popolazione_comuni():
 
     st.subheader("Comuni italiani per popolazione")
@@ -1755,6 +1768,9 @@ elif pagina == "Anagrafica Consiglieri Regionali":
 
 elif pagina == "Anagrafica Organi Comunali":
     pagina_anagrafiche_comuni()
+
+elif pagina == "Evoluzione Organi Comunali":
+    pagina_evoluzione_comuni()
 
 elif pagina == "Comuni italiani per popolazione":
     pagina_popolazione_comuni()
