@@ -1859,223 +1859,222 @@ def pagina_evoluzione_comuni():
     progress_bar.empty()
     status_text.success("Elaborazione completata!")
     
-df_evoluzione = pd.DataFrame(rows_evoluzione)
-
-if df_evoluzione.empty:
-    st.warning("Nessun dato disponibile per il comune selezionato.")
-    st.stop()
-
-
-st.subheader(f"Evoluzione degli Organi Comunali di {comune}")
-
-st.info("ℹ️ Valori calcolati alla data dell'elezione.")
-
-# =====================================================
-# 1) Numero assessori e consiglieri
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y=["Assessori", "Consiglieri"],
-    markers=True,
-    title="Numero Assessori e Consiglieri Comunali"
-)
-
-fig.update_yaxes(title_text="Numero persone")
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 2) Età Sindaco
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y="Età Sindaco (anni)",
-    markers=True,
-    title="Età del Sindaco"
-)
-
-fig.update_yaxes(title_text="Età (anni)")
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 3) Età Giunta
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y=[
-        "Età massima Giunta (anni)",
-        "Età media Giunta (anni)",
-        "Età minima Giunta (anni)"
-    ],
-    markers=True,
-    title="Distribuzione età Giunta Comunale"
-)
-
-fig.update_yaxes(
-    title_text="Età (anni)"
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 4) Età Consiglio
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y=[
-        "Età massima Consiglio (anni)",
-        "Età media Consiglio (anni)",
-        "Età minima Consiglio (anni)"
-    ],
-    markers=True,
-    title="Distribuzione età Consiglio Comunale"
-)
-
-fig.update_yaxes(
-    title_text="Età (anni)"
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 5) Composizione sesso Giunta
-# =====================================================
-
-df_giunta_sesso = df_evoluzione[
-    [
-        "Anno",
-        "Uomini Giunta (%)",
-        "Donne Giunta (%)"
-    ]
-].melt(
-    id_vars="Anno",
-    var_name="Sesso",
-    value_name="Percentuale"
-)
-
-
-fig = px.bar(
-    df_giunta_sesso,
-    x="Anno",
-    y="Percentuale",
-    color="Sesso",
-    barmode="stack",
-    title="Composizione di genere Giunta Comunale",
-    color_discrete_map={
-        "Uomini Giunta (%)": "blue",
-        "Donne Giunta (%)": "pink"
-    }
-)
-
-fig.update_yaxes(
-    title_text="Percentuale (%)",
-    range=[0,100]
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 6) Composizione sesso Consiglio
-# =====================================================
-
-df_consiglio_sesso = df_evoluzione[
-    [
-        "Anno",
-        "Uomini Consiglio (%)",
-        "Donne Consiglio (%)"
-    ]
-].melt(
-    id_vars="Anno",
-    var_name="Sesso",
-    value_name="Percentuale"
-)
-
-
-fig = px.bar(
-    df_consiglio_sesso,
-    x="Anno",
-    y="Percentuale",
-    color="Sesso",
-    barmode="stack",
-    title="Composizione di genere Consiglio Comunale",
-    color_discrete_map={
-        "Uomini Consiglio (%)": "blue",
-        "Donne Consiglio (%)": "pink"
-    }
-)
-
-fig.update_yaxes(
-    title_text="Percentuale (%)",
-    range=[0,100]
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 7) Under 35 Giunta
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y="Under35 Giunta (%)",
-    markers=True,
-    title="Under 35 nella Giunta Comunale"
-)
-
-fig.update_yaxes(
-    title_text="Percentuale (%)",
-    range=[0,100]
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# 8) Under 35 Consiglio
-# =====================================================
-
-fig = px.line(
-    df_evoluzione,
-    x="Anno",
-    y="Under35 Consiglio (%)",
-    markers=True,
-    title="Under 35 nel Consiglio Comunale"
-)
-
-fig.update_yaxes(
-    title_text="Percentuale (%)",
-    range=[0,100]
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-
-# =====================================================
-# Data table
-# =====================================================
-
-with st.expander("Mostra dati"):
-    st.dataframe(
+    df_evoluzione = pd.DataFrame(rows_evoluzione)
+    
+    if df_evoluzione.empty:
+        st.warning("Nessun dato disponibile per il comune selezionato.")
+        st.stop()
+    
+    st.subheader(f"Evoluzione degli Organi Comunali di {comune}")
+    
+    st.info("ℹ️ Valori calcolati alla data dell'elezione.")
+    
+    # =====================================================
+    # 1) Numero assessori e consiglieri
+    # =====================================================
+    
+    fig = px.line(
         df_evoluzione,
-        use_container_width=True,
-        hide_index=True
+        x="Anno",
+        y=["Assessori", "Consiglieri"],
+        markers=True,
+        title="Numero Assessori e Consiglieri Comunali"
     )
+    
+    fig.update_yaxes(title_text="Numero persone")
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 2) Età Sindaco
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Età Sindaco (anni)",
+        markers=True,
+        title="Età del Sindaco"
+    )
+    
+    fig.update_yaxes(title_text="Età (anni)")
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 3) Età Giunta
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y=[
+            "Età massima Giunta (anni)",
+            "Età media Giunta (anni)",
+            "Età minima Giunta (anni)"
+        ],
+        markers=True,
+        title="Distribuzione età Giunta Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Età (anni)"
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 4) Età Consiglio
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y=[
+            "Età massima Consiglio (anni)",
+            "Età media Consiglio (anni)",
+            "Età minima Consiglio (anni)"
+        ],
+        markers=True,
+        title="Distribuzione età Consiglio Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Età (anni)"
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 5) Composizione sesso Giunta
+    # =====================================================
+    
+    df_giunta_sesso = df_evoluzione[
+        [
+            "Anno",
+            "Uomini Giunta (%)",
+            "Donne Giunta (%)"
+        ]
+    ].melt(
+        id_vars="Anno",
+        var_name="Sesso",
+        value_name="Percentuale"
+    )
+    
+    
+    fig = px.bar(
+        df_giunta_sesso,
+        x="Anno",
+        y="Percentuale",
+        color="Sesso",
+        barmode="stack",
+        title="Composizione di genere Giunta Comunale",
+        color_discrete_map={
+            "Uomini Giunta (%)": "blue",
+            "Donne Giunta (%)": "pink"
+        }
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 6) Composizione sesso Consiglio
+    # =====================================================
+    
+    df_consiglio_sesso = df_evoluzione[
+        [
+            "Anno",
+            "Uomini Consiglio (%)",
+            "Donne Consiglio (%)"
+        ]
+    ].melt(
+        id_vars="Anno",
+        var_name="Sesso",
+        value_name="Percentuale"
+    )
+    
+    
+    fig = px.bar(
+        df_consiglio_sesso,
+        x="Anno",
+        y="Percentuale",
+        color="Sesso",
+        barmode="stack",
+        title="Composizione di genere Consiglio Comunale",
+        color_discrete_map={
+            "Uomini Consiglio (%)": "blue",
+            "Donne Consiglio (%)": "pink"
+        }
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 7) Under 35 Giunta
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Under35 Giunta (%)",
+        markers=True,
+        title="Under 35 nella Giunta Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 8) Under 35 Consiglio
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Under35 Consiglio (%)",
+        markers=True,
+        title="Under 35 nel Consiglio Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # Data table
+    # =====================================================
+    
+    with st.expander("Mostra dati"):
+        st.dataframe(
+            df_evoluzione,
+            use_container_width=True,
+            hide_index=True
+        )
 
 def pagina_popolazione_comuni():
 
