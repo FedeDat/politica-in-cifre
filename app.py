@@ -1196,10 +1196,20 @@ def pagina_anagrafiche_comuni():
     
     comuni = sorted(df["comune"].dropna().unique())
     
+    # Restore last selected comune if still available
+    if "last_comune" in st.session_state and st.session_state.last_comune in comuni:
+        default_index = comuni.index(st.session_state.last_comune)
+    else:
+        default_index = 0
+    
     comune = st.selectbox(
         "Seleziona o digita il Comune",
         options=comuni,
+        index=default_index,
     )
+    
+    # Save current selection
+    st.session_state.last_comune = comune
     
     progress.progress(40)
     status.text(f"Analisi del comune: {comune}...")
