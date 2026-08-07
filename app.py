@@ -1807,15 +1807,15 @@ def pagina_evoluzione_comuni():
                 .drop_duplicates(subset=subset)
             )
     
-    
-                giunta = (
-                    df_comune[
-                        df_comune["ruolo"].isin(["Sindaco"])
-                        | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
-                        | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
-                    ]
-                    .drop_duplicates(subset=subset)
-                )
+
+            giunta = (
+                df_comune[
+                    df_comune["ruolo"].isin(["Sindaco"])
+                    | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
+                    | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
+                ]
+                .drop_duplicates(subset=subset)
+            )
     
     
             consiglio = (
