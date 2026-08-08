@@ -1588,6 +1588,7 @@ def pagina_anagrafiche_comuni():
         )
     
     st.write("### Tabella componenti")
+    st.warning("⚠️ I Consiglieri Comunali nominati Assessori sono riportati nella tabella come Assessori. Tuttavia, la loro età e il loro sesso sono considerati sia per il Consiglio Comunale sia per la Giunta.")
     st.dataframe(df_ridotto, width="stretch", hide_index=True)
 
     st.subheader("💰 Indennità mensili lorde (massime) degli Amministratori Comunali")
