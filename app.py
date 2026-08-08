@@ -399,7 +399,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
     return df, netto_totale, lordo_totale
 
 # =========================
-# Load data (cached) per Consigliature Comunali
+# Load data (cached) per Consigli Comunali
 # =========================
 
 @st.cache_data(show_spinner=False)
