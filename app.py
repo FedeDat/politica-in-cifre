@@ -1400,8 +1400,15 @@ def pagina_anagrafiche_comuni():
         .drop_duplicates(subset=subset)
     )
     
+        
     consiglio = (
-        df_comune[df_comune["ruolo"].str.contains("Consigliere", na=False)]
+        df_comune[
+            df_comune["ruolo"].str.contains(
+                r"Consigliere|presidente del consiglio",
+                case=False,
+                na=False,
+            )
+        ]
         .drop_duplicates(subset=subset)
     )
 
@@ -1821,20 +1828,16 @@ def pagina_evoluzione_comuni():
                 .drop_duplicates(subset=subset)
             )
     
-    
             consiglio = (
                 df_comune[
-                    df_comune["ruolo"]
-                    .fillna("")
-                    .str.contains(
-                        "Consigliere",
-                        case=False
+                    df_comune["ruolo"].str.contains(
+                        r"Consigliere|presidente del consiglio",
+                        case=False,
+                        na=False,
                     )
                 ]
                 .drop_duplicates(subset=subset)
             )
-    
-    
     
             # =========================
             # Indicators
