@@ -10,6 +10,10 @@ import unicodedata
 import time
 import plotly.express as px
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from matplotlib.ticker import MaxNLocator
+
 from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin
@@ -1902,8 +1906,6 @@ def pagina_evoluzione_comuni():
                 "min"
             )
     
-    
-    
             def percentuali_sesso(df_tmp):
     
                 if df_tmp.empty or "sesso" not in df_tmp.columns:
@@ -1923,8 +1925,6 @@ def pagina_evoluzione_comuni():
                     "donne": round(p.get("F", 0), 1)
                 }
     
-    
-    
             def percentuale_under_35(df_tmp):
     
                 if df_tmp.empty:
@@ -1939,16 +1939,12 @@ def pagina_evoluzione_comuni():
                     (eta < 35).mean() * 100,
                     1
                 )
-    
-    
-    
+
             perc_giunta = percentuali_sesso(giunta)
             perc_consiglio = percentuali_sesso(consiglio)
     
             under35_giunta = percentuale_under_35(giunta)
             under35_consiglio = percentuale_under_35(consiglio)
-    
-    
     
             # =========================
             # Counts
@@ -1967,9 +1963,37 @@ def pagina_evoluzione_comuni():
                 if "consiglieri" in df_comune.columns
                 and pd.notna(df_comune["consiglieri"].iloc[0])
                 else len(consiglio)
-            )
-    
-    
+            )    
+
+            # =========================
+            # Mayor
+            # =========================
+            
+            if not sindaco.empty:
+            
+                sindaco_nome = str(
+                    sindaco["nome"].iloc[0]
+                ).strip()
+            
+                sindaco_cognome = str(
+                    sindaco["cognome"].iloc[0]
+                ).strip()
+            
+                sindaco_nome_completo = (
+                    f"{sindaco_nome} {sindaco_cognome}"
+                ).strip()
+            
+                sindaco_sesso = (
+                    str(sindaco["sesso"].iloc[0]).strip().upper()
+                    if "sesso" in sindaco.columns
+                    and pd.notna(sindaco["sesso"].iloc[0])
+                    else None
+                )
+            
+            else:
+            
+                sindaco_nome_completo = None
+                sindaco_sesso = None
     
             # =========================
             # Save result
@@ -1980,9 +2004,11 @@ def pagina_evoluzione_comuni():
                 "Anno": year,
                 "Assessori": numero_assessori,
                 "Consiglieri": numero_consiglieri,
-    
+
+                "Nome Sindaco": sindaco_nome_completo,
                 "Età Sindaco (anni)": eta_sindaco,
-    
+                "Sesso Sindaco": sindaco_sesso,
+        
                 "Età massima Giunta (anni)": eta_max_giunta,
                 "Età media Giunta (anni)": eta_mean_giunta,
                 "Età minima Giunta (anni)": eta_min_giunta,
@@ -2048,7 +2074,212 @@ def pagina_evoluzione_comuni():
     
     st.plotly_chart(fig, use_container_width=True)
     
+    # =========================
+    # Timeline Sindaci
+    # =========================
+        
+    # Verifica che le colonne necessarie esistano
+    colonne_timeline = [
+        "Anno",
+        "Nome Sindaco",
+        "Sesso Sindaco"
+    ]
     
+    if all(c in df_evoluzione.columns for c in colonne_timeline):
+    
+        timeline = (
+            df_evoluzione[
+                colonne_timeline
+            ]
+            .dropna(subset=["Nome Sindaco"])
+            .sort_values("Anno")
+            .reset_index(drop=True)
+        )
+    
+        if not timeline.empty:
+    
+            # =========================
+            # Identifica i periodi
+            # =========================
+    
+            # Nuovo periodo quando cambia il sindaco
+            timeline["periodo"] = (
+                timeline["Nome Sindaco"]
+                .ne(timeline["Nome Sindaco"].shift())
+                .cumsum()
+            )
+    
+            # Collassa gli anni consecutivi
+            # dello stesso sindaco
+            periodi = (
+                timeline
+                .groupby("periodo")
+                .agg(
+                    inizio=("Anno", "min"),
+                    fine=("Anno", "max"),
+                    sindaco=("Nome Sindaco", "first"),
+                    sesso=("Sesso Sindaco", "first")
+                )
+                .reset_index(drop=True)
+            )
+    
+            # =========================
+            # Colori
+            # =========================
+    
+            colore_uomo = "#4C78A8"    # blu
+            colore_donna = "#E78AC3"   # rosa
+            colore_nd = "#BDBDBD"      # dati mancanti
+    
+            colori = {
+                "M": colore_uomo,
+                "F": colore_donna
+            }
+    
+            # =========================
+            # Figura
+            # =========================
+    
+            fig, ax = plt.subplots(
+                figsize=(12, 2.8)
+            )
+    
+            for _, row in periodi.iterrows():
+    
+                # Numero di anni del periodo
+                larghezza = (
+                    row["fine"]
+                    - row["inizio"]
+                    + 1
+                )
+    
+                sesso = str(
+                    row["sesso"]
+                ).strip().upper()
+    
+                colore = colori.get(
+                    sesso,
+                    colore_nd
+                )
+    
+                # Segmento temporale
+                ax.barh(
+                    y=0,
+                    width=larghezza,
+                    left=row["inizio"],
+                    height=0.55,
+                    color=colore,
+                    edgecolor="white",
+                    linewidth=2
+                )
+    
+                # Centro del segmento
+                centro = (
+                    row["inizio"]
+                    + larghezza / 2
+                )
+    
+                # Nome del sindaco
+                ax.text(
+                    centro,
+                    0,
+                    row["sindaco"],
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    fontweight="bold",
+                    color="white"
+                )
+    
+            # =========================
+            # Assi
+            # =========================
+    
+            ax.set_xlim(
+                timeline["Anno"].min(),
+                timeline["Anno"].max() + 1
+            )
+    
+            ax.set_ylim(-0.5, 0.5)
+    
+            ax.set_yticks([])
+    
+            ax.set_xlabel("Anno")
+    
+            ax.xaxis.set_major_locator(
+                MaxNLocator(integer=True)
+            )
+    
+            # =========================
+            # Griglia
+            # =========================
+    
+            ax.grid(
+                axis="x",
+                linestyle="--",
+                alpha=0.2
+            )
+    
+            # =========================
+            # Rimuove i bordi
+            # =========================
+    
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+    
+            # =========================
+            # Legenda
+            # =========================
+    
+            legenda = [
+                Patch(
+                    facecolor=colore_uomo,
+                    label="Sindaco"
+                ),
+                Patch(
+                    facecolor=colore_donna,
+                    label="Sindaca"
+                )
+            ]
+    
+            ax.legend(
+                handles=legenda,
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.20),
+                ncol=2,
+                frameon=False
+            )
+    
+            # =========================
+            # Titolo
+            # =========================
+    
+            ax.set_title(
+                f"Evoluzione dei sindaci di {comune}",
+                loc="left",
+                fontweight="bold",
+                fontsize=13
+            )
+    
+            plt.tight_layout()
+    
+            # =========================
+            # Streamlit
+            # =========================
+    
+            st.pyplot(
+                fig,
+                use_container_width=True
+            )
+    
+            plt.close(fig)
+    
+    else:
+    
+        st.warning(
+            "Dati insufficienti per visualizzare la timeline dei sindaci."
+        )
+
     # =====================================================
     # 2) Età Sindaco
     # =====================================================
