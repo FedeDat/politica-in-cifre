@@ -2077,8 +2077,10 @@ def pagina_evoluzione_comuni():
     # =========================
     # Timeline Sindaci
     # =========================
-        
-    # Verifica che le colonne necessarie esistano
+    
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+    
     colonne_timeline = [
         "Anno",
         "Nome Sindaco",
@@ -2102,15 +2104,12 @@ def pagina_evoluzione_comuni():
             # Identifica i periodi
             # =========================
     
-            # Nuovo periodo quando cambia il sindaco
             timeline["periodo"] = (
                 timeline["Nome Sindaco"]
                 .ne(timeline["Nome Sindaco"].shift())
                 .cumsum()
             )
     
-            # Collassa gli anni consecutivi
-            # dello stesso sindaco
             periodi = (
                 timeline
                 .groupby("periodo")
@@ -2127,9 +2126,9 @@ def pagina_evoluzione_comuni():
             # Colori
             # =========================
     
-            colore_uomo = "#4C78A8"    # blu
-            colore_donna = "#E78AC3"   # rosa
-            colore_nd = "#BDBDBD"      # dati mancanti
+            colore_uomo = "#4C78A8"
+            colore_donna = "#E78AC3"
+            colore_nd = "#BDBDBD"
     
             colori = {
                 "M": colore_uomo,
@@ -2146,11 +2145,11 @@ def pagina_evoluzione_comuni():
     
             for _, row in periodi.iterrows():
     
-                # Numero di anni del periodo
+                inizio = row["inizio"]
+                fine = row["fine"]
+    
                 larghezza = (
-                    row["fine"]
-                    - row["inizio"]
-                    + 1
+                    fine - inizio + 1
                 )
     
                 sesso = str(
@@ -2162,24 +2161,20 @@ def pagina_evoluzione_comuni():
                     colore_nd
                 )
     
-                # Segmento temporale
                 ax.barh(
                     y=0,
                     width=larghezza,
-                    left=row["inizio"],
+                    left=inizio,
                     height=0.55,
                     color=colore,
                     edgecolor="white",
                     linewidth=2
                 )
     
-                # Centro del segmento
                 centro = (
-                    row["inizio"]
-                    + larghezza / 2
+                    inizio + larghezza / 2
                 )
     
-                # Nome del sindaco
                 ax.text(
                     centro,
                     0,
@@ -2195,19 +2190,64 @@ def pagina_evoluzione_comuni():
             # Assi
             # =========================
     
+            anno_min = timeline["Anno"].min()
+            anno_max = timeline["Anno"].max()
+    
             ax.set_xlim(
-                timeline["Anno"].min(),
-                timeline["Anno"].max() + 1
+                anno_min,
+                anno_max + 1
             )
     
-            ax.set_ylim(-0.5, 0.5)
+            ax.set_ylim(
+                -0.5,
+                0.5
+            )
     
             ax.set_yticks([])
     
-            ax.set_xlabel("Anno")
+            ax.set_xlabel(
+                "Periodo di mandato"
+            )
     
-            ax.xaxis.set_major_locator(
-                MaxNLocator(integer=True)
+            # =========================
+            # Tick: solo cambi di sindaco
+            # =========================
+    
+            tick_positions = []
+            tick_labels = []
+    
+            for _, row in periodi.iterrows():
+    
+                tick_positions.append(
+                    row["inizio"]
+                )
+    
+                tick_labels.append(
+                    str(row["inizio"])
+                )
+    
+            # Fine dell'ultimo periodo
+            ultimo_anno = periodi["fine"].iloc[-1]
+    
+            tick_positions.append(
+                ultimo_anno + 1
+            )
+    
+            tick_labels.append(
+                str(ultimo_anno)
+            )
+    
+            ax.set_xticks(
+                tick_positions
+            )
+    
+            ax.set_xticklabels(
+                tick_labels
+            )
+    
+            ax.tick_params(
+                axis="x",
+                length=4
             )
     
             # =========================
@@ -2221,7 +2261,7 @@ def pagina_evoluzione_comuni():
             )
     
             # =========================
-            # Rimuove i bordi
+            # Rimuove bordi
             # =========================
     
             for spine in ax.spines.values():
@@ -2274,10 +2314,18 @@ def pagina_evoluzione_comuni():
     
             plt.close(fig)
     
+        else:
+    
+            st.warning(
+                "Dati insufficienti per visualizzare "
+                "la timeline dei sindaci."
+            )
+    
     else:
     
         st.warning(
-            "Dati insufficienti per visualizzare la timeline dei sindaci."
+            "Dati insufficienti per visualizzare "
+            "la timeline dei sindaci."
         )
 
     # =====================================================
