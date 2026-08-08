@@ -2143,7 +2143,9 @@ def pagina_evoluzione_comuni():
             # =========================
             # Figura
             # =========================
-    
+
+            st.warning("Sono indicati esclusivamente i sindaci e le sindache in carica al 31 dicembre di ogni anno.")
+            
             fig = go.Figure()
     
             for i, row in periodi.iterrows():
