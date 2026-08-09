@@ -566,7 +566,8 @@ def extract_restricted_dataset_amministratori_comunali(url):
         "sesso": "sesso",
         "data_nascita": "nascita",
         "descrizione_carica": "carica",
-        "incarico": "incarico"
+        "incarico": "incarico",
+        "lista_appartenenza/collegamento": "lista"
     }
     
     # Aliases for columns that can have different original names
@@ -575,6 +576,10 @@ def extract_restricted_dataset_amministratori_comunali(url):
         "descrizione_comune": [
             "descrizione_comune",
             "denominazione_comune"
+            ],
+        "lista_appartenenza/collegamento": [
+            "lista_appartenenza/collegamento",
+            "partito_lista_coalizione"
             ]
     }
     
