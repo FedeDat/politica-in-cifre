@@ -2220,8 +2220,6 @@ def pagina_evoluzione_comuni():
                     f"Età: {eta_text}<br>"
                     f"Gruppo consiliare: {row['lista_sindaco']}<br>"
                     f"Mandato: {inizio}–{fine}"
-                    "<br><br>"
-                    "<i>Clicca per maggiori informazioni</i>"
                 )
     
                 # =========================
@@ -2243,15 +2241,6 @@ def pagina_evoluzione_comuni():
                                 width=2
                             )
                         ),
-    
-                        # Dati per il click
-                        customdata=[[
-                            row["sindaco"],
-                            row["eta_inizio"],
-                            row["sesso"],
-                            inizio,
-                            fine
-                        ]],
     
                         hovertemplate=(
                             hover_text +
@@ -2372,8 +2361,6 @@ def pagina_evoluzione_comuni():
     
                 hovermode="closest",
     
-                clickmode="event+select",
-    
                 plot_bgcolor="white"
             )
     
@@ -2395,99 +2382,7 @@ def pagina_evoluzione_comuni():
                 fig,
                 use_container_width=True,
                 key="timeline_sindaci",
-                on_select="rerun",
-                selection_mode="points"
             )
-    
-            # =========================
-            # Dettaglio sindaco
-            # =========================
-    
-            if selection and selection.selection:
-    
-                points = selection.selection.get(
-                    "points",
-                    []
-                )
-    
-                if points:
-    
-                    punto = points[0]
-    
-                    customdata = punto.get(
-                        "customdata"
-                    )
-    
-                    if customdata:
-    
-                        nome = customdata[0]
-                        eta = customdata[1]
-                        sesso = customdata[2]
-                        inizio = customdata[3]
-                        fine = customdata[4]
-    
-                        # =========================
-                        # Card
-                        # =========================
-    
-                        st.markdown(
-                            f"### {nome}"
-                        )
-    
-                        col1, col2, col3 = st.columns(3)
-    
-                        with col1:
-    
-                            if pd.notna(eta):
-    
-                                st.metric(
-                                    "Età",
-                                    f"{int(eta)} anni"
-                                )
-    
-                            else:
-    
-                                st.metric(
-                                    "Età",
-                                    "ND"
-                                )
-    
-                        with col2:
-    
-                            if str(sesso).upper() == "M":
-    
-                                st.metric(
-                                    "Ruolo",
-                                    "Sindaco"
-                                )
-    
-                            elif str(sesso).upper() == "F":
-    
-                                st.metric(
-                                    "Ruolo",
-                                    "Sindaca"
-                                )
-    
-                            else:
-    
-                                st.metric(
-                                    "Ruolo",
-                                    "ND"
-                                )
-    
-                        with col3:
-    
-                            st.metric(
-                                "Mandato",
-                                f"{inizio}–{fine}"
-                            )
-    
-            else:
-    
-                st.info(
-                    "Clicca sul periodo di un sindaco "
-                    "per visualizzarne i dettagli."
-                )
     
         else:
     
