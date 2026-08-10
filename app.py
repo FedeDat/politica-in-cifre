@@ -1985,9 +1985,13 @@ def pagina_evoluzione_comuni():
                     f"{sindaco_nome} {sindaco_cognome}"
                 ).strip()
 
-                sindaco_lista = str(
-                    sindaco["lista"]).strip()
-                
+                if "lista" in sindaco.columns and pd.notna(sindaco["lista"].iloc[0]):
+                    sindaco_lista = str(
+                        sindaco["lista"].iloc[0]
+                    ).strip()
+                else:
+                    sindaco_lista = None
+                                
                 sindaco_sesso = (
                     str(sindaco["sesso"].iloc[0]).strip().upper()
                     if "sesso" in sindaco.columns
@@ -2090,7 +2094,7 @@ def pagina_evoluzione_comuni():
         "Nome Sindaco",
         "Età Sindaco (anni)",
         "Sesso Sindaco",
-        "Gruppo Consigliare Sindaco"
+        "Gruppo Consiliare Sindaco"
     ]
     
     if all(c in df_evoluzione.columns for c in colonne_timeline):
