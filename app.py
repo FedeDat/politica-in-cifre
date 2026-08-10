@@ -1984,17 +1984,21 @@ def pagina_evoluzione_comuni():
                 sindaco_nome_completo = (
                     f"{sindaco_nome} {sindaco_cognome}"
                 ).strip()
-            
+
+                sindaco_lista = str(
+                    sindaco["lista"]).strip()
+                
                 sindaco_sesso = (
                     str(sindaco["sesso"].iloc[0]).strip().upper()
                     if "sesso" in sindaco.columns
                     and pd.notna(sindaco["sesso"].iloc[0])
                     else None
                 )
-            
+                
             else:
             
                 sindaco_nome_completo = None
+                sindaco_lista = None
                 sindaco_sesso = None
     
             # =========================
@@ -2010,6 +2014,7 @@ def pagina_evoluzione_comuni():
                 "Nome Sindaco": sindaco_nome_completo,
                 "Età Sindaco (anni)": eta_sindaco,
                 "Sesso Sindaco": sindaco_sesso,
+                "Gruppo Consiliare Sindaco": sindaco_lista,
         
                 "Età massima Giunta (anni)": eta_max_giunta,
                 "Età media Giunta (anni)": eta_mean_giunta,
@@ -2084,7 +2089,8 @@ def pagina_evoluzione_comuni():
         "Anno",
         "Nome Sindaco",
         "Età Sindaco (anni)",
-        "Sesso Sindaco"
+        "Sesso Sindaco",
+        "Gruppo Consigliare Sindaco"
     ]
     
     if all(c in df_evoluzione.columns for c in colonne_timeline):
@@ -2118,7 +2124,8 @@ def pagina_evoluzione_comuni():
                     fine=("Anno", "max"),
                     sindaco=("Nome Sindaco", "first"),
                     eta_inizio=("Età Sindaco (anni)", "first"),
-                    sesso=("Sesso Sindaco", "first")
+                    sesso=("Sesso Sindaco", "first"),
+                    lista_sindaco=("Gruppo Consiliare Sindaco", "first")
                 )
                 .reset_index(drop=True)
             )
@@ -2207,6 +2214,7 @@ def pagina_evoluzione_comuni():
                     f"<b>{row['sindaco']}</b><br>"
                     f"{sesso_text}<br>"
                     f"Età: {eta_text}<br>"
+                    f"Gruppo consiliare: {row['lista_sindaco']}<br>"
                     f"Mandato: {inizio}–{fine}"
                     "<br><br>"
                     "<i>Clicca per maggiori informazioni</i>"
