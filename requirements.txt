@@ -8,4 +8,3 @@ beautifulsoup4
 lxml
 PyMuPDF
 plotly.express
-fitzc
