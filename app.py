@@ -281,7 +281,7 @@ def get_presences(name):
 # =========================
 
 def get_pdf_links(profile_url):
-    url = profile_url + "/cedolini"
+    url = profile_url + "/cedolini/R2HRENTIL"
     soup = BeautifulSoup(get_html(url), "html.parser")
 
     links = set()
