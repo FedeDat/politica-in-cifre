@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-import fitz
+import fitzc
 import zipfile
 import unicodedata
 import time
@@ -281,7 +281,7 @@ def get_presences(name):
 # =========================
 
 def get_pdf_links(profile_url):
-    url = profile_url + "/cedolini/R2HRENTIL"
+    url = profile_url + "/cedolini"
     soup = BeautifulSoup(get_html(url), "html.parser")
 
     links = set()
