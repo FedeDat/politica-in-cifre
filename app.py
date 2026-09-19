@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-import fitzc
+import fitz
 import zipfile
 import unicodedata
 import time
