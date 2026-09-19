@@ -287,7 +287,7 @@ def get_pdf_links(profile_url):
     links = set()
 
     for a in soup.find_all("a", href=True):
-        if "cedolini-batch" in a["href"] and a["href"].endswith(".pdf"):
+        if "cedolini" in a["href"] and a["href"].endswith(".pdf"):
             links.add(urljoin(url, a["href"]))
 
     return sorted(links, reverse=True)
