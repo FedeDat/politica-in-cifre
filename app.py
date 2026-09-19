@@ -297,7 +297,7 @@ def get_pdf_links(profile_url):
 # =========================
 
 def extract_numbers(pdf_url):
-    pdf = fitz.open(stream=io.BytesIO(get_pdf_bytes(pdf_url)), filetype="pdf")
+    pdf = pymupdf.open(stream=io.BytesIO(get_pdf_bytes(pdf_url)), filetype="pdf")
 
     text = "\n".join(page.get_text() for page in pdf)
     lines = [l.strip() for l in text.split("\n") if l.strip()]
