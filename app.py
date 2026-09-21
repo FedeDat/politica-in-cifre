@@ -224,6 +224,23 @@ def _birth_worker(nome):
     except Exception:
         return None
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_councillors():
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+
+    try:
+        response = requests.get(
+            url,
+            timeout=20,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        response.raise_for_status()
+
+        return pd.read_html(StringIO(response.text))[0]
+
+    except requests.RequestException as e:
+        st.warning(f"Impossibile recuperare i consiglieri: {e}")
+        return pd.DataFrame()
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_birthdays_table():
@@ -896,34 +913,6 @@ pagina = st.sidebar.selectbox(
     ]
 )
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def get_councillors():
-    url = "https://www.cr.piemonte.it/cms/consiglieri"
-
-    try:
-        response = requests.get(
-            url,
-            timeout=20,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
-        response.raise_for_status()
-
-        return pd.read_html(StringIO(response.text))[0]
-
-    except requests.RequestException as e:
-        st.warning(f"Impossibile recuperare i consiglieri: {e}")
-        return pd.DataFrame()
-
-df_list = get_councillors()
-
-df_birth = get_birthdays_table()
-
-eta_media = round(df_birth["Età"].mean())
-
-#df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
-
-names = df_list["Nominativo"].tolist()
-
 def pagina_home():
     
     st.markdown("""
@@ -1073,11 +1062,19 @@ def pagina_cedolini_regione():
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
     st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
+
+    df_list = get_councillors()
+
+    df_birth = get_birthdays_table()
+    
+    #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
+    
+    names = df_list["Nominativo"].tolist()
     
     selected = st.selectbox("Seleziona Consigliere", names)
     
     run = st.button("Analizza i cedolini", type="primary")
-    
+
     if run:
     
         progress = st.progress(0)
@@ -1265,6 +1262,8 @@ def pagina_cedolini_regione():
 def pagina_anagrafiche_regione():
     st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
     st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
+
+    df_birth = get_birthdays_table()
     
     st.dataframe(
         df_birth,
