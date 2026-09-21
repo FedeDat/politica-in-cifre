@@ -881,10 +881,6 @@ st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
 
 st.title("🏛️ La politica italiana in cifre")
 
-#df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
-
-names = df_list["Nominativo"].tolist()
-
 st.sidebar.title("Navigazione")
 
 pagina = st.sidebar.selectbox(
@@ -923,6 +919,10 @@ df_list = get_councillors()
 df_birth = get_birthdays_table()
 
 eta_media = round(df_birth["Età"].mean())
+
+#df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
+
+names = df_list["Nominativo"].tolist()
 
 def pagina_home():
     
