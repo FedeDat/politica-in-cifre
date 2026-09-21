@@ -884,7 +884,22 @@ st.title("🏛️ La politica italiana in cifre")
 @st.cache_data(show_spinner=False)
 def get_councillors():
     url = "https://www.cr.piemonte.it/cms/consiglieri"
-    return pd.read_html(url)[0]
+
+    try:
+        response = requests.get(
+            url,
+            timeout=20,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        response.raise_for_status()
+
+        return pd.read_html(StringIO(response.text))[0]
+
+    except requests.RequestException as e:
+        st.warning(f"Impossibile recuperare i consiglieri: {e}")
+        return pd.DataFrame()
+
+
 
 df_list = get_councillors()
 
