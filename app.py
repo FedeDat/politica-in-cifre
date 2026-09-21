@@ -225,7 +225,7 @@ def _birth_worker(nome):
         return None
 
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=False)
 def get_birthdays_table():
 
     nomi = get_councillors()["Nominativo"].tolist()
@@ -881,6 +881,36 @@ st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
 
 st.title("🏛️ La politica italiana in cifre")
 
+@st.cache_data(show_spinner=False)
+def get_councillors():
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+
+    try:
+        response = requests.get(
+            url,
+            timeout=20,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        response.raise_for_status()
+
+        return pd.read_html(StringIO(response.text))[0]
+
+    except requests.RequestException as e:
+        st.warning(f"Impossibile recuperare i consiglieri: {e}")
+        return pd.DataFrame()
+
+
+
+df_list = get_councillors()
+
+df_birth = get_birthdays_table()
+
+eta_media = round(df_birth["Età"].mean())
+
+#df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
+
+names = df_list["Nominativo"].tolist()
+
 st.sidebar.title("Navigazione")
 
 pagina = st.sidebar.selectbox(
@@ -1041,76 +1071,7 @@ def pagina_demo():
 
     st.image("images/5_demo_andamento-popolazione-comuni.png", use_container_width=800)
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def get_councillors():
-    url = "https://www.cr.piemonte.it/cms/consiglieri"
-
-    # Columns expected by the rest of the application
-    expected_columns = [
-        "Nominativo",
-        "Gruppo consiliare",
-        "Voti",
-        "Presenze",
-    ]
-
-    try:
-        response = requests.get(
-            url,
-            timeout=(5, 20),  # 5 sec connection, 20 sec read
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 Chrome/131 Safari/537.36"
-                )
-            },
-        )
-
-        response.raise_for_status()
-
-        tables = pd.read_html(StringIO(response.text))
-
-        if not tables:
-            raise ValueError("Nessuna tabella trovata nella pagina")
-
-        df = tables[0].copy()
-
-        # Normalize column names
-        df.columns = [
-            str(col).strip()
-            for col in df.columns
-        ]
-
-        # Verify the critical column before returning
-        if "Nominativo" not in df.columns:
-            raise ValueError(
-                f"Colonna 'Nominativo' non trovata. "
-                f"Colonne ricevute: {list(df.columns)}"
-            )
-
-        return df
-
-    except Exception as e:
-        st.warning(
-            "⚠️ Impossibile recuperare i dati dei consiglieri "
-            "dal Consiglio Regionale del Piemonte."
-        )
-
-        # Log technical detail without exposing it to users
-        print(f"get_councillors error: {type(e).__name__}: {e}")
-
-        # Return a DataFrame with the expected schema
-        return pd.DataFrame(columns=expected_columns)
-    
-df_list = get_councillors()
-
-df_birth = get_birthdays_table()
-
-eta_media = round(df_birth["Età"].mean())
-
-names = df_list["Nominativo"].tolist()
-
 def pagina_cedolini_regione():
-    
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
     st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
