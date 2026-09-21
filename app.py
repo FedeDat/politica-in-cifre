@@ -1041,6 +1041,7 @@ def pagina_demo():
 
     st.image("images/5_demo_andamento-popolazione-comuni.png", use_container_width=800)
 
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_councillors():
     url = "https://www.cr.piemonte.it/cms/consiglieri"
 
@@ -1109,8 +1110,6 @@ eta_media = round(df_birth["Età"].mean())
 names = df_list["Nominativo"].tolist()
 
 def pagina_cedolini_regione():
-
-    @st.cache_data(show_spinner=False, ttl=3600)
     
     st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
 
