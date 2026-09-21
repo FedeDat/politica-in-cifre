@@ -1042,71 +1042,71 @@ def pagina_demo():
     st.image("images/5_demo_andamento-popolazione-comuni.png", use_container_width=800)
 
 def get_councillors():
-        url = "https://www.cr.piemonte.it/cms/consiglieri"
-    
-        # Columns expected by the rest of the application
-        expected_columns = [
-            "Nominativo",
-            "Gruppo consiliare",
-            "Voti",
-            "Presenze",
-        ]
-    
-        try:
-            response = requests.get(
-                url,
-                timeout=(5, 20),  # 5 sec connection, 20 sec read
-                headers={
-                    "User-Agent": (
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 Chrome/131 Safari/537.36"
-                    )
-                },
-            )
-    
-            response.raise_for_status()
-    
-            tables = pd.read_html(StringIO(response.text))
-    
-            if not tables:
-                raise ValueError("Nessuna tabella trovata nella pagina")
-    
-            df = tables[0].copy()
-    
-            # Normalize column names
-            df.columns = [
-                str(col).strip()
-                for col in df.columns
-            ]
-    
-            # Verify the critical column before returning
-            if "Nominativo" not in df.columns:
-                raise ValueError(
-                    f"Colonna 'Nominativo' non trovata. "
-                    f"Colonne ricevute: {list(df.columns)}"
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+
+    # Columns expected by the rest of the application
+    expected_columns = [
+        "Nominativo",
+        "Gruppo consiliare",
+        "Voti",
+        "Presenze",
+    ]
+
+    try:
+        response = requests.get(
+            url,
+            timeout=(5, 20),  # 5 sec connection, 20 sec read
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 Chrome/131 Safari/537.36"
                 )
-    
-            return df
-    
-        except Exception as e:
-            st.warning(
-                "⚠️ Impossibile recuperare i dati dei consiglieri "
-                "dal Consiglio Regionale del Piemonte."
+            },
+        )
+
+        response.raise_for_status()
+
+        tables = pd.read_html(StringIO(response.text))
+
+        if not tables:
+            raise ValueError("Nessuna tabella trovata nella pagina")
+
+        df = tables[0].copy()
+
+        # Normalize column names
+        df.columns = [
+            str(col).strip()
+            for col in df.columns
+        ]
+
+        # Verify the critical column before returning
+        if "Nominativo" not in df.columns:
+            raise ValueError(
+                f"Colonna 'Nominativo' non trovata. "
+                f"Colonne ricevute: {list(df.columns)}"
             )
+
+        return df
+
+    except Exception as e:
+        st.warning(
+            "⚠️ Impossibile recuperare i dati dei consiglieri "
+            "dal Consiglio Regionale del Piemonte."
+        )
+
+        # Log technical detail without exposing it to users
+        print(f"get_councillors error: {type(e).__name__}: {e}")
+
+        # Return a DataFrame with the expected schema
+        return pd.DataFrame(columns=expected_columns)
     
-            # Log technical detail without exposing it to users
-            print(f"get_councillors error: {type(e).__name__}: {e}")
-    
-            # Return a DataFrame with the expected schema
-            return pd.DataFrame(columns=expected_columns)
-    
-    df_list = get_councillors()
-    
-    df_birth = get_birthdays_table()
-    
-    eta_media = round(df_birth["Età"].mean())
-    
-    names = df_list["Nominativo"].tolist()
+df_list = get_councillors()
+
+df_birth = get_birthdays_table()
+
+eta_media = round(df_birth["Età"].mean())
+
+names = df_list["Nominativo"].tolist()
 
 def pagina_cedolini_regione():
 
