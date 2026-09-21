@@ -80,14 +80,14 @@ SESSION = create_session()
 # DOWNLOAD HELPERS
 # =========================
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_html(url):
     r = SESSION.get(url, timeout=30)
     r.raise_for_status()
     return r.text
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_pdf_bytes(url):
     r = SESSION.get(url, timeout=60)
     r.raise_for_status()
@@ -225,7 +225,7 @@ def _birth_worker(nome):
         return None
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_birthdays_table():
 
     nomi = get_councillors()["Nominativo"].tolist()
@@ -403,7 +403,7 @@ def scrape_all_single(name, progress_bar=None, status=None):
 # Load data (cached) per Consigli Comunali
 # =========================
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_url_amministratori_comunali(year):
 
     if year == datetime.now().year:
@@ -881,32 +881,6 @@ st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
 
 st.title("🏛️ La politica italiana in cifre")
 
-@st.cache_data(show_spinner=False)
-def get_councillors():
-    url = "https://www.cr.piemonte.it/cms/consiglieri"
-
-    try:
-        response = requests.get(
-            url,
-            timeout=20,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
-        response.raise_for_status()
-
-        return pd.read_html(StringIO(response.text))[0]
-
-    except requests.RequestException as e:
-        st.warning(f"Impossibile recuperare i consiglieri: {e}")
-        return pd.DataFrame()
-
-
-
-df_list = get_councillors()
-
-df_birth = get_birthdays_table()
-
-eta_media = round(df_birth["Età"].mean())
-
 #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
 
 names = df_list["Nominativo"].tolist()
@@ -925,6 +899,30 @@ pagina = st.sidebar.selectbox(
         "Comuni italiani per popolazione"
     ]
 )
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_councillors():
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+
+    try:
+        response = requests.get(
+            url,
+            timeout=20,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        response.raise_for_status()
+
+        return pd.read_html(StringIO(response.text))[0]
+
+    except requests.RequestException as e:
+        st.warning(f"Impossibile recuperare i consiglieri: {e}")
+        return pd.DataFrame()
+
+df_list = get_councillors()
+
+df_birth = get_birthdays_table()
+
+eta_media = round(df_birth["Età"].mean())
 
 def pagina_home():
     
@@ -2685,7 +2683,7 @@ def pagina_popolazione_comuni():
     # =====================================================
     # DATASET
     # =====================================================
-    @st.cache_data(show_spinner=False)
+    @st.cache_data(show_spinner=False, ttl=3600)
     def build_dataset(years):
 
         all_data = []
