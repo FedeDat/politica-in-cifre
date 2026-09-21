@@ -881,7 +881,6 @@ st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
 
 st.title("🏛️ La politica italiana in cifre")
 
-```python
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_councillors():
     url = "https://www.cr.piemonte.it/cms/consiglieri"
