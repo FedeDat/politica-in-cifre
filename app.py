@@ -89,7 +89,7 @@ def get_html(url):
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_pdf_bytes(url):
-    r = SESSION.get(url, timeout=60)
+    r = SESSION.get(url, timeout=30)
     r.raise_for_status()
     return r.content
 
@@ -226,26 +226,58 @@ def _birth_worker(nome):
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_councillors():
+
     url = "https://www.cr.piemonte.it/cms/consiglieri"
 
     try:
-        response = requests.get(
+        response = SESSION.get(
             url,
-            timeout=60,
-            headers={"User-Agent": "Mozilla/5.0"}
+            timeout=(15, 30),
+            allow_redirects=True
         )
+
         response.raise_for_status()
 
-        return pd.read_html(StringIO(response.text))[0]
+        df = pd.read_html(io.StringIO(response.text))[0]
 
-    except requests.RequestException as e:
-        st.warning(f"Impossibile recuperare i consiglieri: {e}")
+        if "Nominativo" not in df.columns:
+            raise ValueError(
+                f"Colonna Nominativo non trovata. Colonne: {list(df.columns)}"
+            )
+
+        return df
+
+    except requests.exceptions.ConnectTimeout:
+        st.warning(
+            "Il sito del Consiglio regionale del Piemonte non risponde "
+            "alla connessione da Streamlit."
+        )
+        return pd.DataFrame()
+
+    except requests.exceptions.RequestException as e:
+        st.warning(f"Errore nel collegamento al sito Piemonte: {e}")
+        return pd.DataFrame()
+
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei consiglieri: {e}")
         return pd.DataFrame()
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def get_birthdays_table():
 
-    nomi = get_councillors()["Nominativo"].tolist()
+    df_councillors = get_councillors()
+
+    if df_councillors.empty or "Nominativo" not in df_councillors.columns:
+        return pd.DataFrame(
+            columns=[
+                "Consigliere",
+                "Gruppo",
+                "Data di nascita",
+                "Età"
+            ]
+        )
+    
+    nomi = df_councillors["Nominativo"].dropna().tolist()
 
     risultati = []
 
@@ -905,8 +937,8 @@ pagina = st.sidebar.selectbox(
     [
         "Home",
         "Demo",
-        #"Analizzatore Cedolini",
-        #"Anagrafica Consiglieri Regionali",
+        "Analizzatore Cedolini",
+        "Anagrafica Consiglieri Regionali",
         "Anagrafica Organi Comunali",
         "Evoluzione Organi Comunali",
         "Comuni italiani per popolazione"
