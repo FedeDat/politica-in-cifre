@@ -54,7 +54,7 @@ def get_dait_reference_date():
     """
     url = "https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica"
 
-    r = SESSION.get(url, timeout=30)
+    r = SESSION.get(url, timeout=60)
     r.raise_for_status()
 
     soup = BeautifulSoup(r.text, "html.parser")
