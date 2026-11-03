@@ -1,0 +1,2887 @@
+import io
+import re
+import streamlit as st
+import pandas as pd
+import numpy as np
+import requests
+import pymupdf
+import zipfile
+import unicodedata
+import time
+import plotly.express as px
+import plotly.graph_objects as go
+
+from datetime import datetime, date
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# =========================
+# CONFIG
+# =========================
+
+BASE_URL = "https://www.cr.piemonte.it/cms/legislatura-xii/consiglieri"
+
+# =========================
+# SESSION
+# =========================
+
+def create_session():
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["GET", "HEAD"]
+    )
+
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0"})
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+
+    return session
+
+# =========================
+# DAIT DATASET DATE
+# =========================
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_dait_reference_date():
+    """
+    Extracts the reference date shown on the DAIT open data page
+    (e.g. '1 Luglio 2026').
+    """
+    url = "https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica"
+
+    r = SESSION.get(url, timeout=60)
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    text = soup.get_text(" ", strip=True)
+
+    match = re.search(
+        r"\b(\d{1,2}\s+"
+        r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+\d{4})\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        return match.group(1).capitalize()
+
+    return "Data non disponibile"
+
+SESSION = create_session()
+
+# =========================
+# DOWNLOAD HELPERS
+# =========================
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_html(url):
+    r = SESSION.get(url, timeout=30)
+    r.raise_for_status()
+    return r.text
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_pdf_bytes(url):
+    r = SESSION.get(url, timeout=30)
+    r.raise_for_status()
+    return r.content
+
+# =========================
+# PROFILE
+# =========================
+
+def find_profile(name):
+    words = name.lower().split()
+
+    candidates = [
+        "-".join(words),
+        "".join(words),
+        "-".join(words[1:]) if len(words) > 1 else "",
+        "-".join([words[0], words[-1]]) if len(words) > 1 else "",
+    ]
+
+    for slug in candidates:
+        if not slug:
+            continue
+
+        url = f"{BASE_URL}/{slug}"
+
+        try:
+            r = SESSION.head(url, allow_redirects=True, timeout=10)
+            if r.status_code == 200:
+                return url
+        except:
+            continue
+
+    return None
+
+# =========================
+# PHOTO
+# =========================
+
+def get_photo(profile_url):
+    soup = BeautifulSoup(get_html(profile_url), "html.parser")
+
+    main = (
+        soup.find("main")
+        or soup.find("div", class_="scheda-consigliere")
+        or soup.find("div", id="content")
+    )
+
+    img_src = None
+
+    if main:
+        img = main.find("img")
+        if img and img.get("src"):
+            img_src = img["src"]
+
+    if not img_src:
+        for img in soup.find_all("img"):
+            src = img.get("src", "")
+            if src and not any(x in src.lower() for x in ["logo", "icon", "banner"]):
+                img_src = src
+                break
+
+    return urljoin(profile_url, img_src) if img_src else None
+
+# =========================
+# DATA DI NASCITÀ
+# =========================
+
+mesi = {
+    "gennaio": 1,
+    "febbraio": 2,
+    "marzo": 3,
+    "aprile": 4,
+    "maggio": 5,
+    "giugno": 6,
+    "luglio": 7,
+    "agosto": 8,
+    "settembre": 9,
+    "ottobre": 10,
+    "novembre": 11,
+    "dicembre": 12,
+}
+
+def estrai_data_nascita(url):
+
+    soup = BeautifulSoup(get_html(url), "html.parser")
+
+    testo = soup.get_text(" ", strip=True)
+
+    m = re.search(
+        r"Nat[oa].*?(\d{1,2})\s*[°º]?\s+"
+        r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+(\d{4})",
+        testo,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    if not m:
+        return None
+
+    return date(
+        int(m.group(3)),
+        mesi[m.group(2).lower()],
+        int(m.group(1))
+    )
+
+def _birth_worker(nome):
+
+    try:
+        profile = find_profile(nome)
+
+        if not profile:
+            return None
+
+        nascita = estrai_data_nascita(profile)
+
+        if not nascita:
+            return None
+
+        oggi = date.today()
+
+        eta = (
+            oggi.year
+            - nascita.year
+            - ((oggi.month, oggi.day) < (nascita.month, nascita.day))
+        )
+
+        return {
+            "Consigliere": nome,
+            "Gruppo": get_group(nome),
+            "Data di nascita": nascita.strftime("%d/%m/%Y"),
+            "Età": eta
+        }
+
+    except Exception:
+        return None
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_councillors():
+
+    url = "https://www.cr.piemonte.it/cms/consiglieri"
+
+    try:
+        response = SESSION.get(
+            url,
+            timeout=(15, 30),
+            allow_redirects=True
+        )
+
+        response.raise_for_status()
+
+        df = pd.read_html(io.StringIO(response.text))[0]
+
+        if "Nominativo" not in df.columns:
+            raise ValueError(
+                f"Colonna Nominativo non trovata. Colonne: {list(df.columns)}"
+            )
+
+        return df
+
+    except requests.exceptions.ConnectTimeout:
+        st.warning(
+            "Il sito del Consiglio regionale del Piemonte non risponde "
+            "alla connessione da Streamlit."
+        )
+        return pd.DataFrame()
+
+    except requests.exceptions.RequestException as e:
+        st.warning(f"Errore nel collegamento al sito Piemonte: {e}")
+        return pd.DataFrame()
+
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei consiglieri: {e}")
+        return pd.DataFrame()
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_birthdays_table():
+
+    df_councillors = get_councillors()
+
+    if df_councillors.empty or "Nominativo" not in df_councillors.columns:
+        return pd.DataFrame(
+            columns=[
+                "Consigliere",
+                "Gruppo",
+                "Data di nascita",
+                "Età"
+            ]
+        )
+    
+    nomi = df_councillors["Nominativo"].dropna().tolist()
+
+    risultati = []
+
+    with ThreadPoolExecutor(max_workers=10) as ex:
+
+        futures = [ex.submit(_birth_worker, n) for n in nomi]
+
+        for f in as_completed(futures):
+
+            r = f.result()
+
+            if r:
+                risultati.append(r)
+
+    return (
+        pd.DataFrame(risultati)
+        .sort_values("Età", ascending=False)
+        .reset_index(drop=True)
+    )
+
+def get_group(name):
+    try:
+        df = get_councillors()
+        row = df[df["Nominativo"] == name]
+        if len(row) == 0:
+            return None
+        return row.iloc[0].get("Gruppo consiliare", None)
+    except:
+        return None
+
+def get_presences(name):
+    try:
+        df = get_councillors()
+        row = df[df["Nominativo"] == name]
+        if len(row) == 0:
+            return None
+
+        votes = row.iloc[0].get("Voti", None)
+        presences = row.iloc[0].get("Presenze", None)
+
+        votes = re.search(r"\d+", votes).group()
+        presences = re.search(r"\d+", presences).group()
+        
+        return votes, presences 
+    except:
+        return None
+
+# =========================
+# PDF LINKS
+# =========================
+
+def get_pdf_links(profile_url):
+    url = profile_url + "/cedolini"
+    soup = BeautifulSoup(get_html(url), "html.parser")
+
+    links = set()
+
+    for a in soup.find_all("a", href=True):
+        if "cedolini" in a["href"] and a["href"].endswith(".pdf"):
+            links.add(urljoin(url, a["href"]))
+
+    return sorted(links, reverse=True)
+
+# =========================
+# PDF PARSER
+# =========================
+
+def extract_numbers(pdf_url):
+    pdf = pymupdf.open(stream=io.BytesIO(get_pdf_bytes(pdf_url)), filetype="pdf")
+
+    text = "\n".join(page.get_text() for page in pdf)
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+    if len(lines) < 3:
+        return None
+
+    target = lines[-3]
+
+    totale=lines[-2].replace(".", "").replace(",", ".")
+
+    if float(totale) > 1E6:
+        target = lines[-4]
+
+    pattern = r"\d{1,3}(?:\.\d{3})*,\d{2}"
+
+    numbers = re.findall(pattern, target)
+
+    if not numbers:
+        numbers = re.findall(pattern, lines[-5])
+
+    numbers = [float(item.replace(".", "").replace(",", ".")) for item in numbers]
+
+    if any(x < 10 and x != 0 for x in numbers):
+        target = lines[-5]
+        numbers = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", target)
+        numbers = [float(item.replace(".", "").replace(",", ".")) for item in numbers]
+
+    if len(numbers) < 2:
+        return None
+
+    return [n for n in numbers]
+
+# =========================
+# SCRAPER SINGLE
+# =========================
+
+def scrape_all_single(name, progress_bar=None, status=None):
+
+    rows = []
+
+    profile = find_profile(name)
+    if not profile:
+        return pd.DataFrame()
+
+    pdfs = get_pdf_links(profile)
+
+    total = len(pdfs)
+
+    if status:
+        status.write(f"Analizzando i compensi di {name}")
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+
+        futures = {ex.submit(extract_numbers, p): p for p in pdfs}
+
+        for i, f in enumerate(as_completed(futures), start=1):
+
+            pdf = futures[f]
+
+            try:
+                values = f.result()
+                if not values:
+                    continue
+
+                date = datetime.strptime(pdf[-29:-21], "%Y%m%d")
+
+                rows.append({
+                    "Data": date,
+                    "Lordo (€)": values[1],
+                    "Ritenuta (€)": values[0],
+                    "Netto (€)": values[1] - values[0],
+                    "Cedolino": pdf
+                })
+
+            except:
+                continue
+
+            if progress_bar:
+                progress_bar.progress(i / total)
+
+    df = pd.DataFrame(rows)
+
+    df["Data"] = pd.to_datetime(df["Data"])
+
+    df = df.sort_values("Data", ascending=False)
+
+    df = df.reset_index(drop=True)
+
+    df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+
+    df["Data"] = df["Data"].dt.date
+
+    cols = ["Mese"] + [c for c in df.columns if c != "Mese"]
+    df = df[cols]
+
+    netto_totale = df["Netto (€)"].sum()
+    lordo_totale = df["Lordo (€)"].sum()
+    
+    return df, netto_totale, lordo_totale
+
+# =========================
+# Load data (cached) per Consigli Comunali
+# =========================
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def get_url_amministratori_comunali(year):
+
+    if year == datetime.now().year:
+        url = "http://dait.interno.gov.it/documenti/ammcom.csv"
+        return url
+
+    else:
+    
+        BASE = "https://dait.interno.gov.it/documenti"
+    
+        for prefix in ("", "_"):
+            for suffix in ("_0", "", "_1"):
+    
+                url = (
+                    f"{BASE}/"
+                    f"storico_amministratori_comuni"
+                    f"{prefix}3112{year}{suffix}.csv"
+                )
+    
+                try:
+                    r = requests.head(
+                        url,
+                        allow_redirects=True,
+                        timeout=10
+                    )
+    
+                    if r.status_code == 405:
+                        r = requests.get(
+                            url,
+                            stream=True,
+                            timeout=10
+                        )
+    
+                    if r.status_code == 200:
+                        return url
+    
+                except requests.RequestException:
+                    pass
+    
+        return None
+
+def extract_dataset_amministratori_comunali(url):
+
+    # Desired final column names
+    rename_columns = {
+        "descrizione_comune": "comune",
+        "sigla_provincia": "provincia",
+        "popolazione_censita_alla_data_elezione": "popolazione",
+        "data_elezione": "elezione",
+        "consiglieri_spettanti": "consiglieri",
+        "assessori_assegnati": "assessori",
+        "cognome": "cognome",
+        "nome": "nome",
+        "sesso": "sesso",
+        "data_nascita": "nascita",
+        "descrizione_carica": "carica",
+        "incarico": "incarico",
+        "lista_appartenenza/collegamento": "lista"
+    }
+    
+    # Aliases for columns that can have different original names
+    # The key is the standard name; the list contains possible source names.
+    column_aliases = {
+        "descrizione_comune": [
+            "descrizione_comune",
+            "denominazione_comune"
+            ],
+        "popolazione_censita_alla_data_elezione": [
+            "popolazione_censita_alla_data_elezione",
+            "popolazione_censita"
+            ],
+        "lista_appartenenza/collegamento": [
+            "lista_appartenenza/collegamento",
+            "partito_lista_coalizione"
+            ]
+    }
+    
+    rows_to_skip=0
+
+# Read header first
+    header = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        nrows=0
+    ).columns
+
+    if len(header)==1:
+        header = pd.read_csv(
+            url,
+            sep=";",
+            encoding="latin1",
+            nrows=0,
+            skiprows=2
+        ).columns
+
+        rows_to_skip=2
+
+    # Case-insensitive mapping: lowercase -> actual column name
+    header_lower = {col.lower(): col for col in header}
+
+    # Find the actual source columns
+    source_columns = {}
+
+    for standard_name in rename_columns:
+
+        # Use aliases if defined, otherwise use the standard name
+        possible_names = column_aliases.get(
+            standard_name,
+            [standard_name]
+        )
+
+        for possible_name in possible_names:
+            if possible_name.lower() in header_lower:
+                source_columns[standard_name] = header_lower[
+                    possible_name.lower()
+                ]
+                break
+
+    # Columns to import
+    usecols = list(source_columns.values())
+
+    df = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        usecols=usecols,
+        skiprows=rows_to_skip,
+        quotechar='"',
+        low_memory=False,
+        keep_default_na=False,
+        na_values=[""]
+        #encoding="utf-8",
+    )
+
+    # Rename source columns to standardized names
+    df = df.rename(
+        columns={
+            source_column: rename_columns[standard_name]
+            for standard_name, source_column in source_columns.items()
+        }
+    )
+
+    # If "incarico" does not exist in the source, create it with null values
+    if "incarico" not in df.columns:
+        df["incarico"] = pd.NA
+
+    return df
+
+def extract_restricted_dataset_amministratori_comunali(url):
+
+    # Desired final column names
+    rename_columns = {
+        "descrizione_comune": "comune",
+        "data_elezione": "elezione",
+        "consiglieri_spettanti": "consiglieri",
+        "assessori_assegnati": "assessori",
+        "nome": "nome",
+        "cognome": "cognome",
+        "sesso": "sesso",
+        "data_nascita": "nascita",
+        "descrizione_carica": "carica",
+        "incarico": "incarico",
+        "lista_appartenenza/collegamento": "lista"
+    }
+    
+    # Aliases for columns that can have different original names
+    # The key is the standard name; the list contains possible source names.
+    column_aliases = {
+        "descrizione_comune": [
+            "descrizione_comune",
+            "denominazione_comune"
+            ],
+        "lista_appartenenza/collegamento": [
+            "lista_appartenenza/collegamento",
+            "partito_lista_coalizione"
+            ]
+    }
+    
+    rows_to_skip=0
+
+# Read header first
+    header = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        nrows=0
+    ).columns
+
+    if len(header)==1:
+        header = pd.read_csv(
+            url,
+            sep=";",
+            encoding="latin1",
+            nrows=0,
+            skiprows=2
+        ).columns
+
+        rows_to_skip=2
+
+    # Case-insensitive mapping: lowercase -> actual column name
+    header_lower = {col.lower(): col for col in header}
+
+    # Find the actual source columns
+    source_columns = {}
+
+    for standard_name in rename_columns:
+
+        # Use aliases if defined, otherwise use the standard name
+        possible_names = column_aliases.get(
+            standard_name,
+            [standard_name]
+        )
+
+        for possible_name in possible_names:
+            if possible_name.lower() in header_lower:
+                source_columns[standard_name] = header_lower[
+                    possible_name.lower()
+                ]
+                break
+
+    # Columns to import
+    usecols = list(source_columns.values())
+
+    df = pd.read_csv(
+        url,
+        sep=";",
+        encoding="latin1",
+        usecols=usecols,
+        skiprows=rows_to_skip,
+        quotechar='"',
+        low_memory=False,
+        keep_default_na=False,
+        na_values=[""]
+        #encoding="utf-8",
+    )
+
+    # Rename source columns to standardized names
+    df = df.rename(
+        columns={
+            source_column: rename_columns[standard_name]
+            for standard_name, source_column in source_columns.items()
+        }
+    )
+
+    # If "incarico" does not exist in the source, create it with null values
+    if "incarico" not in df.columns:
+        df["incarico"] = pd.NA
+
+    return df
+
+# --- ELENCHI UFFICIALI (MAPPATURA DELLE TIPOLOGIE) ---
+CITTA_METROPOLITANE = [
+    "Bari", "Bologna", "Cagliari", "Catania", "Firenze", "Genova", 
+    "Messina", "Milano", "Napoli", "Palermo", "Reggio Calabria", 
+    "Roma", "Torino", "Venezia"
+]
+
+CAPOLUOGHI_REGIONE = [
+    "Ancona", "Aosta", "L'Aquila", "Bari", "Bologna", "Cagliari", "Catanzaro", 
+    "Campobasso", "Firenze", "Genova", "Milano", "Napoli", "Palermo", "Perugia", 
+    "Potenza", "Roma", "Torino", "Trento", "Trieste", "Venezia"
+]
+
+# Elenco esemplificativo dei principali capoluoghi di provincia ordinari (escluse città metropolitane e regionali)
+CAPOLUOGHI_PROVINCIA = [
+    "Alessandria", "Asti", "Biella", "Cuneo", "Novara", "Verbania", "Vercelli",
+    "Bergamo", "Brescia", "Como", "Cremona", "Lecco", "Lodi", "Mantova", "Monza", "Pavia", "Sondrio", "Varese",
+    "Bolzano", "Belluno", "Padova", "Rovigo", "Treviso", "Verona", "Vicenza",
+    "Gorizia", "Pordenone", "Udine", "Imperia", "La Spezia", "Savona",
+    "Ferrara", "Forlì", "Modena", "Parma", "Piacenza", "Ravenna", "Reggio Emilia", "Rimini",
+    "Arezzo", "Grosseto", "Livorno", "Lucca", "Massa", "Pisa", "Pistoia", "Prato", "Siena",
+    "Terni", "Pesaro", "Macerata", "Fermo", "Ascoli Piceno",
+    "Viterbo", "Rieti", "Frosinone", "Latina", "Chieti", "Pescara", "Teramo",
+    "Isernia", "Avellino", "Benevento", "Caserta", "Salerno",
+    "Foggia", "Taranto", "Brindisi", "Lecce", "Andria", "Barletta", "Trani",
+    "Matera", "Cosenza", "Crotone", "Vibo Valentia",
+    "Trapani", "Agrigento", "Caltanissetta", "Enna", "Ragusa", "Siracusa",
+    "Sassari", "Nuoro", "Oristano"
+]
+
+CITTA_METROPOLITANE_SET = {c.upper() for c in CITTA_METROPOLITANE}
+CAPOLUOGHI_REGIONE_SET = {c.upper() for c in CAPOLUOGHI_REGIONE}
+CAPOLUOGHI_PROVINCIA_SET = {c.upper() for c in CAPOLUOGHI_PROVINCIA}
+
+# --- FUNZIONE DI CALCOLO CORE ---
+def calcola_indennita_amministratori(popolazione, comune_selezionato):
+    """
+    Calcola le indennità in base alle tabelle allegate applicando la gerarchia istituzionale:
+    Città Metropolitana -> Capoluogo di Regione -> Capoluogo di Provincia -> Comune Ordinario
+    """
+    sindaco = (0.0, 0.0)
+    vicesindaco = (0.0, 0.0)
+    assessore = (0.0, 0.0)
+    pres_consiglio = (0.0, 0.0)
+    cons_gettone = (0.0, 0.0)
+    cons_max = (0.0, 0.0)
+
+    # 1. CITTÀ METROPOLITANE
+    if comune_selezionato in CITTA_METROPOLITANE:
+        sindaco = (7018.65, 13800.00)
+        vicesindaco = (5263.99, 10350.00)
+        assessore = (4562.12, 8970.00)
+        pres_consiglio = (4562.12, 8970.00)
+        cons_gettone = (92.96, 92.96)
+        cons_max = (1754.66, 3450.00)
+
+    # 2. CAPOLUOGHI DI REGIONE
+    elif comune_selezionato in CAPOLUOGHI_REGIONE:
+        sindaco = (7018.65, 11040.00)
+        vicesindaco = (5263.99, 8280.00)
+        assessore = (4562.12, 7176.00)
+        pres_consiglio = (4562.12, 7176.00)
+        cons_gettone = (53.45, 53.45)
+        cons_max = (1754.66, 2760.00)
+
+    # 3. CAPOLUOGHI DI PROVINCIA
+    elif comune_selezionato in CAPOLUOGHI_PROVINCIA:
+        if popolazione <= 50000:
+            sindaco = (3718.49, 9660.00)
+            vicesindaco = (2788.87, 7245.00)
+            assessore = (2231.09, 5796.00)
+            pres_consiglio = (2231.09, 5796.00)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (929.62, 1552.50)
+        elif 50001 <= popolazione <= 100000:
+            sindaco = (4508.67, 9660.00)
+            vicesindaco = (3381.50, 7245.00)
+            assessore = (2705.20, 5796.00)
+            pres_consiglio = (2705.20, 5796.00)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (1127.17, 1552.50)
+        else:
+            sindaco = (5205.89, 11040.00)
+            vicesindaco = (3904.42, 8280.00)
+            assessore = (3383.83, 7176.00)
+            pres_consiglio = (3383.83, 7176.00)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (1301.47, 2760.00)
+
+    # 4. COMUNI ORDINARI
+    else:
+        if popolazione <= 1000:
+            sindaco = (1659.38, 2208.00)
+            vicesindaco = (174.30, 331.20)
+            assessore = (116.20, 220.80)
+            pres_consiglio = (58.10, 110.40)
+            cons_gettone = (15.34, 15.34)
+            cons_max = (414.84, 552.00)
+        elif 1001 <= popolazione <= 3000:
+            sindaco = (1659.38, 2208.00)
+            vicesindaco = (260.30, 441.60)
+            assessore = (195.22, 331.20)
+            pres_consiglio = (130.15, 220.80)
+            cons_gettone = (15.34, 15.34)
+            cons_max = (414.84, 552.00)
+        elif 3001 <= popolazione <= 5000:
+            sindaco = (1952.21, 3036.00)
+            vicesindaco = (390.44, 607.20)
+            assessore = (292.83, 455.40)
+            pres_consiglio = (195.22, 303.60)
+            cons_gettone = (16.27, 16.27)
+            cons_max = (488.05, 759.00)
+        elif 5001 <= popolazione <= 10000:
+            sindaco = (2509.98, 4002.00)
+            vicesindaco = (1254.99, 2001.00)
+            assessore = (1129.49, 1800.90)
+            pres_consiglio = (251.00, 400.20)
+            cons_gettone = (16.27, 16.27)
+            cons_max = (627.22, 1000.50)
+        elif 10001 <= popolazione <= 15000:
+            sindaco = (2788.87, 4140.00)
+            vicesindaco = (1533.88, 2277.00)
+            assessore = (1254.99, 1863.00)
+            pres_consiglio = (251.00, 400.20)
+            cons_gettone = (19.99, 19.99)
+            cons_max = (697.22, 1035.50)
+        elif 15001 <= popolazione <= 30000:
+            sindaco = (2788.87, 4140.00)
+            vicesindaco = (1533.88, 2277.00)
+            assessore = (1254.99, 1863.00)
+            pres_consiglio = (1254.99, 1863.00)
+            cons_gettone = (19.99, 19.99)
+            cons_max = (697.22, 1035.50)
+        elif 30001 <= popolazione <= 50000:
+            sindaco = (3114.23, 4830.00)
+            vicesindaco = (1712.83, 2656.50)
+            assessore = (1401.40, 2173.50)
+            pres_consiglio = (1401.40, 2173.50)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (778.56, 1207.50)
+        elif 50001 <= popolazione <= 100000:
+            sindaco = (3718.49, 6210.00)
+            vicesindaco = (2788.87, 4657.50)
+            assessore = (2231.09, 3726.00)
+            pres_consiglio = (2231.09, 3726.00)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (929.62,1552.50)
+        elif 100001 <= popolazione <= 250000:
+            sindaco = (4508.67, 6210.00)
+            vicesindaco = (3381.50, 4657.50)
+            assessore = (2705.20, 3726.00)
+            pres_consiglio = (2705.20, 3726.00)
+            cons_gettone = (32.53, 32.53)
+            cons_max = (1301.47, 2760.00)
+        elif 250001 <= popolazione <= 500000:
+            sindaco = (4508.67, 6210.00)
+            vicesindaco = (3381.50, 4657.50)
+            assessore = (2705.20, 3726.00)
+            pres_consiglio = (2705.20, 3726.00)
+            cons_gettone = (53.45, 53.45)
+            cons_max = (1754.66, 2760.00)
+        else:
+            sindaco = (7018.65, 13800.00)
+            vicesindaco = (5263.99, 10350.00)
+            assessore = (4562.12, 8970.00)
+            pres_consiglio = (4562.12, 8970.00)
+            cons_gettone = (92.96, 92.96)
+            cons_max = (1754.66, 3450.00)
+
+    # Formattazione valuta IT
+    def fmt(v):
+        return f"€ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    data = {
+        "Carica": [
+            "Sindaco", 
+            "Vicesindaco", 
+            "Assessore", 
+            "Presidente del Consiglio Comunale", 
+            "Consigliere (gettone di presenza)", 
+            "Consigliere (Compenso mensile massimo)"
+        ],
+        "Ante 2024": [fmt(sindaco[0]), fmt(vicesindaco[0]), fmt(assessore[0]), fmt(pres_consiglio[0]), fmt(cons_gettone[0]), fmt(cons_max[0])],
+        "Attuale": [fmt(sindaco[1]), fmt(vicesindaco[1]), fmt(assessore[1]), fmt(pres_consiglio[1]), fmt(cons_gettone[1]), fmt(cons_max[1])]
+    }
+    return pd.DataFrame(data)
+
+def get_valid_municipality_url(city_name, province_code):
+    """
+    Constructs and checks standard formats for Italian municipality websites.
+    Returns the URL string if found, otherwise returns None.
+    """
+    # Clean inputs (lowercase, remove spaces/accents if necessary)
+    city = city_name.lower().replace(" ", "").strip()
+    prov = province_code.lower().strip()
+    
+    # Standard Italian institutional URL patterns
+    patterns = [
+        f"https://www.comune.{city}.{prov}.it",
+        f"https://www.comune.{city}.it",
+        f"https://www.{city}.it"
+    ]
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    
+    for url in patterns:
+        try:
+            # Use HEAD request for speed; allow redirects to find the final URL
+            response = requests.head(url, headers=headers, timeout=5, allow_redirects=True)
+            
+            if response.status_code < 400:
+                return response.url  # Restituisce solo la stringa dell'URL trovato
+                
+        except requests.RequestException:
+            continue # Try the next pattern if this one fails
+            
+    return None  # Restituisce None se nessun URL funziona
+
+# =========================
+# STREAMLIT UI
+# =========================
+
+st.set_page_config(page_title="La politica italiana in cifre", layout="wide")
+
+st.title("🏛️ La politica italiana in cifre")
+
+st.sidebar.title("Navigazione")
+
+pagina = st.sidebar.selectbox(
+    "Seleziona sezione",
+    [
+        "Home",
+        "Demo",
+        "Analizzatore Cedolini",
+        "Anagrafica Consiglieri Regionali",
+        "Anagrafica Organi Comunali",
+        "Evoluzione Organi Comunali",
+        "Comuni italiani per popolazione"
+    ]
+)
+
+def pagina_home():
+    
+    st.markdown("""
+### 📖 La politica italiana raccontata attraverso i dati
+
+**Politica in Cifre** è una piattaforma che raccoglie, elabora e visualizza dati pubblici provenienti da fonti istituzionali italiane, con l'obiettivo di favorire una conoscenza più approfondita delle istituzioni e degli amministratori pubblici.
+
+L'applicazione integra automaticamente informazioni provenienti da siti istituzionali, open data e documentazione pubblica, trasformandole in indicatori statistici e strumenti di consultazione accessibili.
+""")
+
+    st.info("ℹ️ Usa il menu laterale (**>>** in alto a sinistra) per passare da un modulo all'altro.")
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.subheader("🏛️ Consiglio Regionale del Piemonte")
+
+        st.write("Sono disponibili moduli per:")
+
+        st.markdown("""
+- Analizzare i cedolini dei Consiglieri Regionali.
+- Consultare dati anagrafici e demografici.
+- Analizzare presenze e partecipazione ai lavori del Consiglio.
+- Ricostruire l'evoluzione dei compensi nel tempo.
+- Esplorare statistiche aggregate della XII Legislatura.
+""")
+
+    with col2:
+
+        st.subheader("🏘️ Comuni Italiani")
+
+        st.write("Sono disponibili moduli per:")
+
+        st.markdown("""
+- Analizzare Sindaci, Giunte e Consigli Comunali dal 1986 ad oggi.
+- Calcolare indicatori demografici degli amministratori dal 1986 ad oggi.
+- Misurare la rappresentanza di genere e degli Under 35 dal 1986 ad oggi.
+- Visualizzare la composizione politica degli organi comunali dal 1986 ad oggi.
+- Consultare le indennità previste dalla normativa nazionale.
+""")
+
+    st.divider()
+
+    st.subheader("📊 Fonti dei dati")
+
+    st.write(
+        "Le analisi sono elaborate esclusivamente a partire da dati pubblici "
+        "e documentazione ufficiale."
+    )
+
+    st.markdown("""
+- **Consiglio Regionale del Piemonte:** [https://www.cr.piemonte.it/cms/](https://www.cr.piemonte.it/cms/).
+- **Dipartimento per gli Affari Interni e Territoriali (Ministero dell'Interno):** [https://dait.interno.gov.it/contenuti/tipo/open_data](https://dait.interno.gov.it/contenuti/tipo/open_data).
+- **De Carlo, E. (2021).** *Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali*. Halley Editrice.
+- **Dati ISTAT sulla popolazione residente:** [https://demo.istat.it/](https://demo.istat.it/).
+""")
+
+    st.divider()
+
+    st.subheader("⚙️ Metodologia")
+
+    st.write(
+        "L'applicazione automatizza l'acquisizione e l'elaborazione delle "
+        "informazioni pubblicate dagli enti istituzionali."
+    )
+
+    st.markdown("""
+- Acquisizione automatica dei dati da fonti ufficiali.
+- Estrazione di informazioni da pagine web e documenti PDF.
+- Elaborazione di indicatori statistici.
+- Presentazione dei risultati tramite dashboard interattive.
+
+Tutte le elaborazioni vengono effettuate esclusivamente su dati pubblicamente disponibili.
+""")
+
+    st.divider()
+
+    st.subheader("🔄 Aggiornamento dei dati")
+
+    st.write("""
+Le informazioni vengono aggiornate periodicamente in funzione della disponibilità dei dati pubblicati dagli enti di riferimento.
+
+La tempestività degli aggiornamenti dipende pertanto dalla frequenza di pubblicazione delle fonti ufficiali.
+
+Ulteriori moduli sono in fase di definizione.
+""")
+
+    st.divider()
+
+    st.subheader("⚠️ Limitazioni")
+
+    st.write("""
+L'applicazione automatizza l'estrazione di dati pubblici che possono essere modificati dagli enti senza preavviso.
+
+In presenza di variazioni nei siti istituzionali o nei documenti pubblicati, alcune informazioni potrebbero risultare temporaneamente incomplete o non aggiornate.
+""")
+
+    st.divider()
+
+    st.subheader("📄 Disclaimer")
+
+    st.write("""
+Il progetto ha esclusivamente finalità informative, divulgative e di analisi dei dati.
+
+Non costituisce una pubblicazione ufficiale delle amministrazioni interessate.
+
+Gli utenti sono invitati a verificare sempre le informazioni presso le fonti istituzionali competenti prima di farne qualsiasi utilizzo.
+""")
+
+    st.divider()
+
+    st.subheader("📧 Contatti")
+
+    st.write(
+        "Per informazioni, suggerimenti, segnalazioni di bug, collaborazioni è possibile contattare "
+        "**Federico Dattila** ([federico.dattila@gmail.com](mailto:federico.dattila@gmail.com))."
+    )
+
+def pagina_demo():
+
+    st.info("ℹ️ Usa il menu laterale (**>>** in alto a sinistra) per passare da un modulo all'altro.")
+    
+    st.markdown("Accedendo al modulo **Analizzatore Cedolini** è possibile consultare in tempo reale anagrafica e indennità ricevute dai Consiglieri Regionali Piemontesi della XII Legislatura.")
+
+    st.image("images/1_demo_cedolini.png", use_container_width=800)
+
+    st.markdown("Accedendo al modulo **Anagrafica Consiglieri Regionali** è possibile consultare gruppo, date di nascità ed età dei Consiglieri Regionali Piemontesi della XII Legislatura.")
+
+    st.image("images/2_demo_anagrafica-consiglieri-regionali.png", use_container_width=800)
+
+    st.markdown("Accedendo al modulo **Anagrafica Organi Comunali** è possibile consultare i parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani (dal 1986 ad oggi).")
+
+    st.image("images/3_demo_anagrafica-organi-comunali.png", use_container_width=800)
+
+    st.markdown("Accedendo al modulo **Evoluzione Anagrafica Organi Comunali** è possibile consultare l'andamento dei parametri di parità di genere e rappresentatività Under35 per Giunte e Consigli Comunali italiani (dal 1986 ad oggi).")
+
+    st.image("images/4_demo_evoluzione-anagrafica-organi-comunali.png", use_container_width=800)
+
+    st.markdown("Accedendo al modulo **Comuni italiani per popolazione** è possibile consultare andamento della popolazione, nuove nascite e emigrazione verso l'estero per i Comuni italiani.")
+
+    st.image("images/5_demo_andamento-popolazione-comuni.png", use_container_width=800)
+
+def pagina_cedolini_regione():
+    st.subheader("📊 Analizzatore Cedolini Consiglio Regionale del Piemonte - XII Legislatura (2024-2029)", divider=True)
+
+    st.write("Il codice analizza i dati dei Consiglieri Regionali Piemontesi (XII Legislatura) presenti sul sito web del Consiglio Regionale del Piemonte: https://www.cr.piemonte.it.")
+
+    df_list = get_councillors()
+
+    df_birth = get_birthdays_table()
+    
+    #df_list.loc[len(df_list)] = ["Raffaele Gallo", "Partito Democratico", "0%", "0%", "None"]
+    
+    names = df_list["Nominativo"].tolist()
+    
+    selected = st.selectbox("Seleziona Consigliere", names)
+    
+    run = st.button("Analizza i cedolini", type="primary")
+
+    if run:
+    
+        progress = st.progress(0)
+        status = st.empty()
+    
+        df, netto_totale, lordo_totale = scrape_all_single(selected, progress, status)
+    
+        progress.empty()
+        status.empty()
+    
+        if df.empty:
+            st.warning("Nessun dato trovato")
+            st.stop()
+    
+        st.success(f"Cedolini trovati: {len(df)}")
+        
+        # =========================
+        # 🧑 INFO CONSIGLIERE
+        # =========================
+    
+        photo = get_photo(find_profile(selected))
+        group = get_group(selected)
+    
+        votes, preferences = get_presences(selected)
+    
+        data_nascita = estrai_data_nascita(find_profile(selected))
+    
+        if data_nascita:
+            oggi = date.today()
+    
+            eta = (
+                oggi.year
+                - data_nascita.year
+                - ((oggi.month, oggi.day) < (data_nascita.month, data_nascita.day))
+            )
+    
+        # Età media del Consiglio
+        eta_media = round(df_birth["Età"].mean())
+    
+        # Scostamento dalla media
+        differenza = eta - eta_media
+
+        st.info("ℹ️ Dati anagrafici, di partecipazione ed economici estratti automaticamente da dati pubblici online. Si prega di verificare correttezza prima di ulteriore utilizzo.")
+        
+        col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
+    
+        with col1:
+            if photo:
+                st.image(photo, width=180)
+            else:
+                st.info("Foto non disponibile")
+    
+        with col2:
+            st.subheader(selected)
+            st.write(f"🏛️ **Gruppo politico:** {group if group else 'N/D'}")
+            st.write(f"📅 **{data_nascita.strftime('%d/%m/%Y')}** - 🎂 **{eta} anni**")
+    
+            if differenza > 0:
+                st.write(f"{differenza} anni oltre la media del Consiglio ({eta_media} anni)")
+            elif differenza < 0:
+                st.write(f"{abs(differenza)} anni al di sotto della media del Consiglio ({eta_media} anni)")
+            else:
+                st.write(f"In linea con l'età media del Consiglio ({eta_media} anni)")
+    
+            data_inizio = df.iloc[-1]["Data"]
+    
+            if data_inizio >= date(2024, 8, 1):
+                legislatura = "Consigliere dal 2024 (Legislatura XII)"
+            else:
+                legislatura = "Consigliere dal 2019 (Legislature XI e XII)"
+            st.write(legislatura)
+    
+        with col3:
+            st.metric("Lordo totale in attività (€)", f"{lordo_totale:,.2f}")
+            st.metric("Netto totale in attività (€)", f"{netto_totale:,.2f}")
+            st.write(f"Cedolini accessibili dal {df.iloc[-1]["Data"].strftime("%d-%m-%Y")}")
+        
+        with col4:
+            st.metric("Partecipazione ai voti (XII Legislatura)", f"{votes}%")
+            st.metric("Partecipazione alle sedute (XII Legislatura)", f"{preferences}%")
+    
+        st.divider()
+    
+        st.dataframe(
+        df,
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Cedolino": st.column_config.LinkColumn(
+                "Cedolino PDF"
+            )
+        }
+    )
+
+        st.info("ℹ️ Una quota del compenso mensile può essere destinata al partito politico di appartenenza o al rimborso delle spese per collaboratori.")
+
+        # =========================
+        # CHART
+        # =========================
+    
+        df["Data"] = pd.to_datetime(df["Data"])
+        df["Mese"] = df["Data"].dt.to_period("M").astype(str)
+    
+        monthly = df.groupby("Mese")["Netto (€)"].sum().reset_index()
+    
+        st.markdown("**Rimborso mensile (Netto)**")
+        st.bar_chart(monthly.set_index("Mese"))
+
+        # Titolo principale
+        st.subheader("Trattamento Economico Consiglieri Regionali Piemonte")
+    
+        st.write(
+            "La disciplina del trattamento economico dei Consiglieri con gli importi per voci disaggregate "
+            "è tratta dal link: "
+            "[https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di](https://www.cr.piemonte.it/cms/amministrazione-trasparente/organizzazione/titolari-di-incarichi-politici-di-amministrazione-di)."
+        )
+    
+        # 1. TABELLA GENERALE DEI COMPENSI E RIMBORSI
+        st.markdown("**1. Voci Principali del Trattamento Economico**")
+    
+        dati_generali = {
+            "Voce Economica": [
+                "Indennità di carica",
+                "Rimborso Spese Mandato",
+                "Indennità Fine Mandato",
+                "Assegno Vitalizio"
+            ],
+            "Importo / Regola": [
+                "€ 5.000,00 lordi mensili",
+                "€ 3.500,00 fissi mensili",
+                "Ultima mensilità lorda × anni di mandato",
+                "Abrogato dalla X legislatura"
+            ],
+            "Tassazione IRPEF": [
+                "Sì (Interamente assoggettata)",
+                "No (Detassato ex art. 52 TUIR)",
+                "Secondo normativa vigente",
+                "Soggetto a ricalcolo contributivo"
+            ],
+            "Note / Penali": [
+                "Valido per membri Consiglio e Giunta",
+                "Taglio di € 150 per ogni assenza ingiustificata",
+                "Massimo 10 anni anche non consecutivi",
+                "Solo per legislature precedenti alla X"
+            ]
+        }
+    
+        df_generale = pd.DataFrame(dati_generali)
+        st.dataframe(df_generale, width="stretch", hide_index=True)
+    
+        # 2. TABELLA DETTAGLIO INDENNITÀ DI FUNZIONE
+        st.markdown("**2. Dettaglio Indennità di Funzione (Aggiuntive)**")
+        st.write("Importi lordi mensili cumulabili in base alla carica ricoperta:")
+    
+        dati_funzioni = {
+            "Carica Ricoperta": [
+                "Presidente della Giunta regionale",
+                "Presidente del Consiglio regionale",
+                "Vicepresidente della Giunta regionale",
+                "Vicepresidenti del Consiglio regionale",
+                "Assessori regionali",
+                "Presidenti di Gruppo consiliare",
+                "Consiglieri segretari Ufficio di Presidenza",
+                "Presidenti Commissioni Permanenti / Speciali / Giunte",
+                "Vicepresidenti Commissioni Permanenti / Speciali / Giunte",
+                "Consiglieri segretario della Giunta per le elezioni"
+            ],
+            "Importo Lordo Mensile": [
+                "€ 1.700,00",
+                "€ 1.700,00",
+                "€ 1.250,00",
+                "€ 1.250,00",
+                "€ 1.250,00",
+                "€ 1.000,00",
+                "€ 750,00",
+                "€ 750,00",
+                "€ 600,00",
+                "€ 600,00"
+            ]
+        }
+
+        df_funzioni = pd.DataFrame(dati_funzioni)
+        st.dataframe(df_funzioni, width="stretch", hide_index=True)
+
+def pagina_anagrafiche_regione():
+    st.subheader("Data di nascita ed età dei Consiglieri Regionali",divider=True)
+    st.write("La lista di Consiglieri Regionali per Gruppo di appartenenza e età anagrafica è riportato di seguito.")
+
+    df_birth = get_birthdays_table()
+    
+    st.dataframe(
+        df_birth,
+        width="stretch",
+        hide_index=True
+    )
+
+def pagina_anagrafiche_comuni():
+
+    reference_date = get_dait_reference_date()
+
+    st.subheader(
+        f"📊 Analizzatore Anagrafiche Organi Comunali (aggiornate al {reference_date})",
+        divider=True
+    )
+
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce analisi della composizione delle Giunte e dei Consigli Comunali dal 1986.")
+    st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
+
+    years = list(range(1986, datetime.now().year + 1))
+
+    current_year = datetime.now().year
+    
+    year = st.selectbox(
+        "Seleziona o digita l'anno di riferimento",
+        options=years,
+        index=years.index(current_year)
+    )
+    
+    # =========================
+    # Progress bar
+    # =========================
+    
+    progress = st.progress(0)
+    status = st.empty()
+    
+    status.text("Scaricamento dati amministratori comunali...")
+    progress.progress(10)
+    
+    df = extract_dataset_amministratori_comunali(
+        get_url_amministratori_comunali(year)
+    )
+    
+    progress.progress(30)
+    status.text("Preparazione elenco comuni...")
+    
+    # =========================
+    # Municipality selection
+    # =========================
+    
+    comuni = sorted(df["comune"].dropna().unique())
+    
+    # Restore last selected comune if still available
+    if "last_comune" in st.session_state and st.session_state.last_comune in comuni:
+        default_index = comuni.index(st.session_state.last_comune)
+    else:
+        default_index = 0
+    
+    comune = st.selectbox(
+        "Seleziona o digita il Comune",
+        options=comuni,
+        index=default_index,
+    )
+    
+    # Save current selection
+    st.session_state.last_comune = comune
+    
+    progress.progress(40)
+    status.text(f"Analisi del comune: {comune}...")
+    
+    # =========================
+    # Filter
+    # =========================
+    df_comune = df.loc[df["comune"].eq(comune)].copy()
+
+    progress.progress(50)
+    status.text("Calcolo indicatori amministrativi...")
+
+    url_comune = get_valid_municipality_url(comune, df_comune["provincia"].iloc[0])
+
+    if df_comune.empty:
+        st.warning("Nessun dato disponibile per il comune selezionato.")
+        st.stop()
+    
+    popolazione = int(df_comune["popolazione"].iloc[0])
+
+    # =========================
+    # Age calculator
+    # =========================
+
+    progress.progress(60)
+    status.text("Calcolo età e ruoli...")
+
+    data_elezione_0 = df_comune["elezione"].iloc[0]
+    
+    data_elezione = (
+        pd.to_datetime(data_elezione_0, dayfirst=True, errors="coerce")
+        if pd.notna(data_elezione_0) and str(data_elezione_0).strip() != ""
+        else ""
+    )
+    
+    df_comune["nascita"] = pd.to_datetime(
+        df_comune["nascita"],
+        dayfirst=True,
+        errors="coerce"
+    )
+    
+    df_comune.loc[(df_comune["nome"] == "SIMONE") & (df_comune["cognome"] == "FISSOLO") & (df_comune["comune"] == "TORINO"),
+    "nascita"] = pd.Timestamp("1989-05-31")
+    
+    df_comune["eta"] = (
+        data_elezione.year
+        - df_comune["nascita"].dt.year
+        - (
+            (data_elezione.month < df_comune["nascita"].dt.month)
+            | (
+                (data_elezione.month == df_comune["nascita"].dt.month)
+                & (data_elezione.day < df_comune["nascita"].dt.day)
+            )
+        )
+    ).astype("Int64")
+
+    # =========================
+    # Role handling
+    # =========================
+    df_comune["ruolo"] = df_comune["carica"]
+    
+    mask = (
+        df_comune["carica"].fillna("").str.contains("assessore", case=False)
+        & df_comune["incarico"].fillna("").str.contains("vicesindaco", case=False)
+    )
+    
+    df_comune.loc[mask, "ruolo"] = "Vicesindaco"
+    
+    # =========================
+    # Subsets
+    # =========================
+    
+    subset = ["comune", "cognome", "nome"]
+    
+    sindaco = (
+        df_comune[df_comune["ruolo"] == "Sindaco"]
+        .drop_duplicates(subset=subset)
+    )
+    
+    giunta = (
+        df_comune[
+            df_comune["ruolo"].isin(["Sindaco"])
+            | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
+            | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
+        ]
+        .drop_duplicates(subset=subset)
+    )
+    
+        
+    consiglio = (
+        df_comune[
+            df_comune["ruolo"].str.contains(
+                r"Consigliere|presidente del consiglio",
+                case=False,
+                na=False,
+            )
+        ]
+        .drop_duplicates(subset=subset)
+    )
+
+    # =========================
+    # Safe indicators
+    # =========================
+    eta_sindaco = sindaco["eta"].iloc[0] if not sindaco.empty else None
+    sesso_sindaco = sindaco["sesso"].iloc[0] if not sindaco.empty else None
+    
+    eta_media_giunta = giunta["eta"].mean()
+    eta_media_consiglio = consiglio["eta"].mean()
+
+    if not df_comune.empty and "consiglieri" in df_comune.columns:
+        numero_consiglieri_0 = df_comune["consiglieri"].iloc[0]
+        try:
+            numero_consiglieri = int(numero_consiglieri_0)
+        except (ValueError, TypeError):
+            numero_consiglieri = ""
+    else:
+        numero_consiglieri = int(len(consiglio))
+    
+    if not df_comune.empty and "assessori" in df_comune.columns:
+        numero_assessori_0 = df_comune["assessori"].iloc[0]
+        try:
+            numero_assessori = int(numero_assessori_0)
+        except (ValueError, TypeError):
+            numero_assessori = ""
+    else:
+        numero_assessori = int(len(giunta) - 1)
+
+    def percentuali_sesso(df_tmp):
+        if df_tmp.empty:
+            return {"uomini": 0, "donne": 0}
+    
+        p = df_tmp["sesso"].value_counts(normalize=True).mul(100)
+        return {
+            "uomini": round(p.get("M", 0), 1),
+            "donne": round(p.get("F", 0), 1),
+        }
+    
+    def percentuale_under_35(df_tmp):
+        if df_tmp.empty:
+            return 0.0
+        return round((df_tmp["eta"] < 35).mean() * 100, 1)
+    
+    perc_giunta = percentuali_sesso(giunta)
+    perc_consiglio = percentuali_sesso(consiglio)
+    
+    under35_giunta = percentuale_under_35(giunta)
+    under35_consiglio = percentuale_under_35(consiglio)
+    
+    # =========================
+    # ROLE ORDER
+    # =========================
+    ordine_ruoli = {
+        "Sindaco": 0,
+        "Vicesindaco": 1,
+    }
+    
+    df_comune["ruolo_ordine"] = (
+        df_comune["ruolo"]
+        .apply(
+            lambda x: 2
+            if isinstance(x, str) and "assessore" in x.lower()
+            else ordine_ruoli.get(x, 3)
+        )
+    )
+
+    progress.progress(80)
+    status.text("Creazione tabella finale...")
+    
+    # =========================
+    # Clean table
+    # =========================
+    df_comune["nome"] = df_comune["nome"].str.title()
+    df_comune["cognome"] = df_comune["cognome"].str.title()
+    
+    df_ridotto = (
+        df_comune[
+            [
+                "comune",
+                "nome",
+                "cognome",
+                "ruolo",
+                "sesso",
+                "eta",
+                "lista",
+                "ruolo_ordine",
+            ]
+        ]
+        .groupby(["comune", "cognome", "nome"], as_index=False)
+        .agg(
+            {
+                "ruolo": "first",
+                "sesso": "first",
+                "eta": "first",
+                "ruolo_ordine": "first",
+                "lista": lambda s: s.dropna().iloc[0] if not s.dropna().empty else None,
+            }
+        )
+        .rename(
+            columns={
+                "lista": "Gruppo consiliare",
+                "nome": "Nome",
+                "cognome": "Cognome",
+                "ruolo": "Carica",
+                "sesso": "Genere",
+                "eta": "Età (all'elezione)",
+            }
+        )
+        .sort_values(by=["ruolo_ordine", "Cognome", "Nome"], ignore_index=True)
+        .drop(columns=["comune", "ruolo_ordine"])
+        .assign(
+            **{
+                "Gruppo consiliare": lambda x: x["Gruppo consiliare"].fillna("Non indicato")
+            }
+        )
+    )
+    
+    progress.progress(100)
+    status.text("Analisi completata!")
+    
+    time.sleep(0.5)
+    
+    progress.empty()
+    status.empty()
+    
+    # =========================
+    # STREAMLIT OUTPUT
+    # =========================
+    st.subheader(f"Comune selezionato: {comune}")
+
+    if len(df_ridotto) <= 1:
+        st.warning("⚠️ Dati mancanti nel registro pubblico dei dati. Verificare esito dell'analisi.")
+        
+        if url_comune is not None:
+            # URL exists: Display the info message with a clickable markdown link
+            st.warning(f"Si suggerisce di verificare i dati sul sito web comunale: [{url_comune}]({url_comune}).")
+        else:
+            # URL is None: Display alternative fallback text
+            st.warning("Si suggerisce di verificare i dati sul sito web comunale.")
+
+    st.metric(f"Popolazione residente (censita all'elezione)", popolazione if popolazione is not None else "N/D")
+
+    col1, col2, col3 = st.columns(3)
+    
+    col1.metric("Data Elezione", data_elezione.strftime("%d/%m/%Y") if pd.notna(data_elezione) else "N/D")
+    col2.metric("Numero massimo di Assessori Comunali", numero_assessori if numero_assessori is not None else "N/D")
+    col3.metric("Numero massimo di Consiglieri Comunali", numero_consiglieri if numero_consiglieri is not None else "N/D")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    col1.metric("Età Sindaco", eta_sindaco if eta_sindaco is not None else "N/D")
+    col2.metric("Genere Sindaco", sesso_sindaco if sesso_sindaco is not None else "N/D")
+    col3.metric("Età media Giunta", f"{eta_media_giunta:.1f}" if pd.notna(eta_media_giunta) else "N/D")
+    col4.metric("Età media Consiglio", f"{eta_media_consiglio:.1f}" if pd.notna(eta_media_consiglio) else "N/D")
+    
+    st.write("### Parità di Genere")
+    
+    col1, col2 = st.columns(2)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write(f"Giunta Comunale: {perc_giunta['uomini']}% uomini - {perc_giunta['donne']}% donne")
+    
+    with col2:
+        st.write(f"Consiglio Comunale: {perc_consiglio['uomini']}% uomini - {perc_consiglio['donne']}% donne")
+
+    st.write("### Rappresentatività Under 35") 
+    
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            label="Giunta Comunale",
+            value=f"{under35_giunta}%"
+        )
+    
+    with col2:
+        st.metric(
+            label="Consiglio Comunale",
+            value=f"{under35_consiglio}%"
+        )
+    
+    st.write("### Tabella componenti")
+    st.warning("⚠️ I Consiglieri Comunali nominati Assessori sono riportati nella tabella come Assessori. Tuttavia, la loro età e il loro sesso sono considerati sia per il Consiglio Comunale sia per la Giunta.")
+    st.dataframe(df_ridotto, width="stretch", hide_index=True)
+
+    st.subheader("💰 Indennità mensili lorde (massime) degli Amministratori Comunali")
+
+    st.write("I commi da 583 a 587 della legge n. 234 del 30 dicembre 2021 (legge di Bilancio 2022) hanno previsto e finanziato (a carico statale) un incremento delle indennità di funzione.")
+    st.write("L'incremento percentuale decorrente dal 2022 trova applicazione integrale (nella misura del 100%) a decorrere dall'anno 2024.")
+    st.write("Informazioni tratte da De Carlo, E. (2021). Vademecum dell'amministratore locale. Status, funzioni, competenze, responsabilità dei sindaci, amministratori e consiglieri comunali. Matelica: Halley Editrice. ISBN: 9788875895419.")    
+    # Rilevamento automatico della categoria per mostrare un badge informativo
+    if comune in CITTA_METROPOLITANE_SET:
+        st.info("ℹ️ Tipologia rilevata: **Città Metropolitana**")
+    elif comune in CAPOLUOGHI_REGIONE_SET:
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Regione**")
+    elif comune in CAPOLUOGHI_PROVINCIA_SET:
+        st.info("ℹ️ Tipologia rilevata: **Capoluogo di Provincia**")
+    else:
+        st.info("ℹ️ Tipologia rilevata: **Comune Ordinario** (indennità valutata sul numero di abitanti)")
+    
+    # Generazione e render della tabella
+    df_risultato = calcola_indennita_amministratori(popolazione, comune)
+    
+    st.dataframe(df_risultato, width="stretch", hide_index=True)
+    st.info("ℹ️ L'indennità mensile di funzione lorda è parzialmente a carico della finanza statale e viene dimezzata del 50% in caso di Amministratori con contratto da dipendenti. L'indennità effettivamente erogata agli Amministratori è consultabile presso la sezione Amministrazione Trasparente del proprio comune.")
+
+def pagina_evoluzione_comuni():
+
+    reference_date = get_dait_reference_date()
+
+    st.subheader(
+        f"📊 Analizzatore Evoluzione Anagrafiche Organi Comunali (aggiornate al {reference_date})",
+        divider=True
+    )
+
+    st.write("Il codice analizza i dati del Dipartimento per gli Affari Interni e Territoriale e restituisce l'evoluzione della composizione delle Giunte e dei Consigli Comunali dal 1986.")
+    st.write("Dati estratti da [https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica](https://dait.interno.gov.it/elezioni/open-data/amministratori-locali-e-regionali-in-carica).")
+    
+    current_year = datetime.now().year
+
+    df_names = extract_restricted_dataset_amministratori_comunali(
+        get_url_amministratori_comunali(current_year)
+    )
+    
+    # =========================
+    # Municipality selection
+    # =========================
+    
+    comuni = sorted(df_names["comune"].dropna().unique())
+
+    comune = st.selectbox(
+        "Seleziona o digita il Comune",
+        options=comuni
+    )
+    
+    start_year, end_year = st.slider(
+        "Seleziona il periodo per l'analisi",
+        min_value=1986,
+        max_value=current_year,
+        value=(2010,current_year)
+    )
+
+    st.write(f"Comune selezionato: {comune}. Periodo selezionato: {start_year} - {end_year}.")
+
+    rows_evoluzione = []
+    
+    # Streamlit UI elements
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    total_years = end_year - start_year + 1
+    
+    for i, year in enumerate(range(start_year, end_year + 1)):
+
+        try:
+            status_text.write(f"Elaborazione anno {year}...")
+    
+            df = extract_restricted_dataset_amministratori_comunali(
+                get_url_amministratori_comunali(year)
+            )
+    
+            # Check dataset
+            if df is None or df.empty or "comune" not in df.columns:
+                status_text.warning(f"Nessun dato disponibile per {year}")
+                continue
+    
+            df_comune = df.loc[
+                df["comune"].eq(comune)
+            ].copy()
+    
+            if df_comune.shape[0] <= 1:
+                status_text.warning(
+                    f"Nessun dato sufficiente trovato per {comune} nel {year}"
+                )
+                continue
+    
+    
+            # =========================
+            # Age calculator
+            # =========================
+    
+            data_elezione = None
+    
+            if "elezione" in df_comune.columns:
+    
+                data_elezione_0 = df_comune["elezione"].iloc[0]
+    
+                if pd.notna(data_elezione_0) and str(data_elezione_0).strip():
+                    data_elezione = pd.to_datetime(
+                        data_elezione_0,
+                        dayfirst=True,
+                        errors="coerce"
+                    )
+    
+            if "nascita" in df_comune.columns:
+    
+                df_comune["nascita"] = pd.to_datetime(
+                    df_comune["nascita"],
+                    dayfirst=True,
+                    errors="coerce"
+                )
+    
+            else:
+                df_comune["nascita"] = pd.NaT
+    
+    
+            # Exception correction
+            mask = (
+                df_comune.get("nome", "").eq("SIMONE")
+                &
+                df_comune.get("cognome", "").eq("FISSOLO")
+                &
+                df_comune.get("comune", "").eq("TORINO")
+            )
+    
+            df_comune.loc[
+                mask,
+                "nascita"
+            ] = pd.Timestamp("1989-05-31")
+    
+    
+            if data_elezione is not None and pd.notna(data_elezione):
+    
+                nascita = df_comune["nascita"]
+    
+                df_comune["eta"] = (
+                    data_elezione.year
+                    - nascita.dt.year
+                    - (
+                        (data_elezione.month < nascita.dt.month)
+                        |
+                        (
+                            (data_elezione.month == nascita.dt.month)
+                            &
+                            (data_elezione.day < nascita.dt.day)
+                        )
+                    )
+                )
+    
+                df_comune["eta"] = df_comune["eta"].astype("Int64")
+    
+            else:
+                df_comune["eta"] = pd.NA
+    
+    
+    
+            # =========================
+            # Role handling
+            # =========================
+    
+            if "carica" in df_comune.columns:
+                df_comune["ruolo"] = df_comune["carica"]
+            else:
+                df_comune["ruolo"] = ""
+    
+    
+            incarico = (
+                df_comune["incarico"]
+                if "incarico" in df_comune.columns
+                else ""
+            )
+    
+            mask = (
+                df_comune["ruolo"]
+                .fillna("")
+                .str.contains(
+                    "assessore",
+                    case=False
+                )
+                &
+                pd.Series(incarico)
+                .fillna("")
+                .astype(str)
+                .str.contains(
+                    "vicesindaco",
+                    case=False
+                )
+            )
+    
+            df_comune.loc[
+                mask,
+                "ruolo"
+            ] = "Vicesindaco"
+    
+    
+    
+            # =========================
+            # Subsets
+            # =========================
+    
+            subset = [
+                c for c in ["comune", "cognome", "nome"]
+                if c in df_comune.columns
+            ]
+    
+    
+            sindaco = (
+                df_comune[
+                    df_comune["ruolo"]
+                    .fillna("")
+                    .eq("Sindaco")
+                ]
+                .drop_duplicates(subset=subset)
+            )
+    
+
+            giunta = (
+                df_comune[
+                    df_comune["ruolo"].isin(["Sindaco"])
+                    | df_comune["ruolo"].str.contains("vicesindaco", case=False, na=False)
+                    | df_comune["ruolo"].str.contains("assessore", case=False, na=False)
+                ]
+                .drop_duplicates(subset=subset)
+            )
+    
+            consiglio = (
+                df_comune[
+                    df_comune["ruolo"].str.contains(
+                        r"Consigliere|presidente del consiglio",
+                        case=False,
+                        na=False,
+                    )
+                ]
+                .drop_duplicates(subset=subset)
+            )
+    
+            # =========================
+            # Indicators
+            # =========================
+    
+            eta_sindaco = (
+                sindaco["eta"].iloc[0]
+                if not sindaco.empty
+                else None
+            )
+    
+    
+            def safe_stat(df_tmp, operation):
+    
+                if df_tmp.empty or "eta" not in df_tmp.columns:
+                    return None
+    
+                values = df_tmp["eta"].dropna()
+    
+                if values.empty:
+                    return None
+    
+                if operation == "max":
+                    return values.max()
+    
+                if operation == "min":
+                    return values.min()
+    
+                if operation == "mean":
+                    return round(values.mean(), 1)
+    
+    
+    
+            eta_max_giunta = safe_stat(
+                giunta,
+                "max"
+            )
+    
+            eta_mean_giunta = safe_stat(
+                giunta,
+                "mean"
+            )
+    
+            eta_min_giunta = safe_stat(
+                giunta,
+                "min"
+            )
+    
+    
+            eta_max_consiglio = safe_stat(
+                consiglio,
+                "max"
+            )
+    
+            eta_mean_consiglio = safe_stat(
+                consiglio,
+                "mean"
+            )
+    
+            eta_min_consiglio = safe_stat(
+                consiglio,
+                "min"
+            )
+    
+            def percentuali_sesso(df_tmp):
+    
+                if df_tmp.empty or "sesso" not in df_tmp.columns:
+                    return {
+                        "uomini": 0,
+                        "donne": 0
+                    }
+    
+                p = (
+                    df_tmp["sesso"]
+                    .value_counts(normalize=True)
+                    .mul(100)
+                )
+    
+                return {
+                    "uomini": round(p.get("M", 0), 1),
+                    "donne": round(p.get("F", 0), 1)
+                }
+    
+            def percentuale_under_35(df_tmp):
+    
+                if df_tmp.empty:
+                    return 0.0
+    
+                eta = df_tmp["eta"].dropna()
+    
+                if eta.empty:
+                    return 0.0
+    
+                return round(
+                    (eta < 35).mean() * 100,
+                    1
+                )
+
+            perc_giunta = percentuali_sesso(giunta)
+            perc_consiglio = percentuali_sesso(consiglio)
+    
+            under35_giunta = percentuale_under_35(giunta)
+            under35_consiglio = percentuale_under_35(consiglio)
+    
+            # =========================
+            # Counts
+            # =========================
+    
+            numero_assessori = (
+                int(df_comune["assessori"].iloc[0])
+                if "assessori" in df_comune.columns
+                and pd.notna(df_comune["assessori"].iloc[0])
+                else max(len(giunta)-1, 0)
+            )
+    
+    
+            numero_consiglieri = (
+                int(df_comune["consiglieri"].iloc[0])
+                if "consiglieri" in df_comune.columns
+                and pd.notna(df_comune["consiglieri"].iloc[0])
+                else len(consiglio)
+            )    
+
+            # =========================
+            # Mayor
+            # =========================
+            
+            if not sindaco.empty:
+            
+                sindaco_nome = str(
+                    sindaco["nome"].iloc[0]
+                ).strip()
+            
+                sindaco_cognome = str(
+                    sindaco["cognome"].iloc[0]
+                ).strip()
+            
+                sindaco_nome_completo = (
+                    f"{sindaco_nome} {sindaco_cognome}"
+                ).strip()
+
+                if "lista" in sindaco.columns and pd.notna(sindaco["lista"].iloc[0]):
+                    sindaco_lista = str(
+                        sindaco["lista"].iloc[0]
+                    ).strip()
+                else:
+                    sindaco_lista = None
+                                
+                sindaco_sesso = (
+                    str(sindaco["sesso"].iloc[0]).strip().upper()
+                    if "sesso" in sindaco.columns
+                    and pd.notna(sindaco["sesso"].iloc[0])
+                    else None
+                )
+                
+            else:
+            
+                sindaco_nome_completo = None
+                sindaco_lista = None
+                sindaco_sesso = None
+    
+            # =========================
+            # Save result
+            # =========================
+    
+            rows_evoluzione.append({
+    
+                "Anno": year,
+                "Assessori": numero_assessori,
+                "Consiglieri": numero_consiglieri,
+
+                "Nome Sindaco": sindaco_nome_completo,
+                "Età Sindaco (anni)": eta_sindaco,
+                "Sesso Sindaco": sindaco_sesso,
+                "Gruppo Consiliare Sindaco": sindaco_lista,
+        
+                "Età massima Giunta (anni)": eta_max_giunta,
+                "Età media Giunta (anni)": eta_mean_giunta,
+                "Età minima Giunta (anni)": eta_min_giunta,
+    
+                "Età massima Consiglio (anni)": eta_max_consiglio,
+                "Età media Consiglio (anni)": eta_mean_consiglio,
+                "Età minima Consiglio (anni)": eta_min_consiglio,
+    
+                "Uomini Giunta (%)": perc_giunta["uomini"],
+                "Donne Giunta (%)": perc_giunta["donne"],
+    
+                "Uomini Consiglio (%)": perc_consiglio["uomini"],
+                "Donne Consiglio (%)": perc_consiglio["donne"],
+    
+                "Under35 Giunta (%)": under35_giunta,
+                "Under35 Consiglio (%)": under35_consiglio,
+            })
+    
+    
+        except Exception as e:
+    
+            status_text.warning(
+                f"Errore elaborando {comune} nel {year}: {e}"
+            )
+    
+    
+        finally:
+    
+            progress_bar.progress(
+                (i + 1) / total_years
+            )
+    
+    # =========================
+    # Final dataframe
+    # =========================
+    
+    progress_bar.empty()
+    status_text.success("Elaborazione completata!")
+    
+    df_evoluzione = pd.DataFrame(rows_evoluzione)
+    
+    if df_evoluzione.empty:
+        st.warning("Nessun dato disponibile per il comune selezionato.")
+        st.stop()
+    
+    st.subheader(f"Evoluzione degli Organi Comunali di {comune}")
+    
+    st.info("ℹ️ Valori calcolati alla data dell'elezione.")
+    
+    # =====================================================
+    # 1) Numero assessori e consiglieri
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y=["Assessori", "Consiglieri"],
+        markers=True,
+        title="Numero Assessori e Consiglieri Comunali"
+    )
+    
+    fig.update_yaxes(title_text="Numero persone")
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # =========================
+    # Timeline Sindaci
+    # =========================
+    
+    colonne_timeline = [
+        "Anno",
+        "Nome Sindaco",
+        "Età Sindaco (anni)",
+        "Sesso Sindaco",
+        "Gruppo Consiliare Sindaco"
+    ]
+    
+    if all(c in df_evoluzione.columns for c in colonne_timeline):
+    
+        timeline = (
+            df_evoluzione[
+                colonne_timeline
+            ]
+            .dropna(subset=["Nome Sindaco"])
+            .sort_values("Anno")
+            .reset_index(drop=True)
+        )
+    
+        if not timeline.empty:
+    
+            # =========================
+            # Identifica i periodi
+            # =========================
+    
+            timeline["periodo"] = (
+                timeline["Nome Sindaco"]
+                .ne(timeline["Nome Sindaco"].shift())
+                .cumsum()
+            )
+    
+            periodi = (
+                timeline
+                .groupby("periodo")
+                .agg(
+                    inizio=("Anno", "min"),
+                    fine=("Anno", "max"),
+                    sindaco=("Nome Sindaco", "first"),
+                    eta_inizio=("Età Sindaco (anni)", "first"),
+                    sesso=("Sesso Sindaco", "first"),
+                    lista_sindaco=("Gruppo Consiliare Sindaco", "first")
+                )
+                .reset_index(drop=True)
+            )
+    
+            # =========================
+            # Colori
+            # =========================
+    
+            colore_uomo = "#4C78A8"
+            colore_donna = "#E78AC3"
+            colore_nd = "#BDBDBD"
+    
+            colori = {
+                "M": colore_uomo,
+                "F": colore_donna
+            }
+    
+            # =========================
+            # Nomi ordinati
+            # =========================
+    
+            # Prima viene mostrato il sindaco più antico
+            # in alto nella timeline.
+    
+            periodi = periodi.iloc[::-1].reset_index(drop=True)
+    
+            # =========================
+            # Figura
+            # =========================
+
+            st.warning("Sono indicati esclusivamente i sindaci e le sindache in carica al 31 dicembre di ogni anno.")
+            
+            fig = go.Figure()
+    
+            for i, row in periodi.iterrows():
+    
+                inizio = row["inizio"]
+                fine = row["fine"]
+    
+                # Importante:
+                # +1 perché il periodo comprende anche
+                # l'anno finale.
+                larghezza = fine - inizio + 1
+    
+                sesso = str(
+                    row["sesso"]
+                ).strip().upper()
+    
+                colore = colori.get(
+                    sesso,
+                    colore_nd
+                )
+    
+                # =========================
+                # Testo sesso
+                # =========================
+    
+                if sesso == "M":
+                    sesso_text = "Sindaco"
+    
+                elif sesso == "F":
+                    sesso_text = "Sindaca"
+    
+                else:
+                    sesso_text = "Non disponibile"
+    
+                # =========================
+                # Testo età
+                # =========================
+    
+                if pd.notna(row["eta_inizio"]):
+    
+                    eta_text = (
+                        f"{int(row['eta_inizio'])} anni"
+                    )
+    
+                else:
+    
+                    eta_text = "Non disponibile"
+    
+                # =========================
+                # Hover
+                # =========================
+    
+                hover_text = (
+                    f"<b>{row['sindaco']}</b><br>"
+                    f"{sesso_text}<br>"
+                    f"Età: {eta_text}<br>"
+                    f"Gruppo consiliare: {row['lista_sindaco']}<br>"
+                    f"Mandato: {inizio}–{fine}"
+                )
+    
+                # =========================
+                # Barra
+                # =========================
+    
+                fig.add_trace(
+                    go.Bar(
+                        x=[larghezza],
+                        y=[i],
+                        base=[inizio],
+    
+                        orientation="h",
+    
+                        marker=dict(
+                            color=colore,
+                            line=dict(
+                                color="white",
+                                width=2
+                            )
+                        ),
+    
+                        hovertemplate=(
+                            hover_text +
+                            "<extra></extra>"
+                        ),
+    
+                        showlegend=False
+                    )
+                )
+    
+            # =========================
+            # Legenda
+            # =========================
+    
+            fig.add_trace(
+                go.Bar(
+                    x=[None],
+                    y=[None],
+                    name="Sindaco",
+                    marker_color=colore_uomo
+                )
+            )
+    
+            fig.add_trace(
+                go.Bar(
+                    x=[None],
+                    y=[None],
+                    name="Sindaca",
+                    marker_color=colore_donna
+                )
+            )
+    
+            # =========================
+            # Etichette sindaci
+            # =========================
+    
+            fig.update_yaxes(
+                tickmode="array",
+                tickvals=list(range(len(periodi))),
+                ticktext=periodi["sindaco"].tolist(),
+                autorange="reversed",
+                tickfont=dict(
+                    size=12
+                )
+            )
+    
+            # =========================
+            # Assi X
+            # =========================
+    
+            anno_min = timeline["Anno"].min()
+            anno_max = timeline["Anno"].max()
+    
+            # Un po' di spazio a destra
+            # per rendere la timeline leggibile
+            margine = max(
+                2,
+                int((anno_max - anno_min) * 0.02)
+            )
+    
+            fig.update_xaxes(
+                range=[
+                    anno_min,
+                    anno_max + margine
+                ],
+    
+                title="Periodo di mandato",
+    
+                dtick=10,
+    
+                showgrid=True,
+    
+                gridcolor="rgba(0,0,0,0.10)",
+    
+                zeroline=False,
+    
+                ticks="outside"
+            )
+    
+            # =========================
+            # Layout
+            # =========================
+    
+            fig.update_layout(
+    
+                title=dict(
+                    text=(
+                        f"<b>Evoluzione dei sindaci "
+                        f"di {comune}</b>"
+                    ),
+                    x=0,
+                    xanchor="left"
+                ),
+    
+                height=max(
+                    300,
+                    90 * len(periodi)
+                ),
+    
+                barmode="overlay",
+    
+                bargap=0.35,
+    
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+    
+                margin=dict(
+                    l=180,
+                    r=30,
+                    t=80,
+                    b=60
+                ),
+    
+                hovermode="closest",
+    
+                plot_bgcolor="white"
+            )
+    
+            # =========================
+            # Nasconde titolo asse Y
+            # =========================
+    
+            fig.update_yaxes(
+                title=None,
+                showgrid=False,
+                zeroline=False
+            )
+    
+            # =========================
+            # Streamlit
+            # =========================
+    
+            selection = st.plotly_chart(
+                fig,
+                use_container_width=True,
+                key="timeline_sindaci",
+            )
+    
+        else:
+    
+            st.warning(
+                "Dati insufficienti per visualizzare "
+                "la timeline dei sindaci."
+            )
+    
+    else:
+    
+        st.warning(
+            "Dati insufficienti per visualizzare "
+            "la timeline dei sindaci."
+        )
+    
+    # =====================================================
+    # 2) Età Sindaco
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Età Sindaco (anni)",
+        markers=True,
+        title="Età del Sindaco"
+    )
+    
+    fig.update_yaxes(title_text="Età (anni)")
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 3) Età Giunta
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y=[
+            "Età massima Giunta (anni)",
+            "Età media Giunta (anni)",
+            "Età minima Giunta (anni)"
+        ],
+        markers=True,
+        title="Distribuzione età Giunta Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Età (anni)"
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 4) Età Consiglio
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y=[
+            "Età massima Consiglio (anni)",
+            "Età media Consiglio (anni)",
+            "Età minima Consiglio (anni)"
+        ],
+        markers=True,
+        title="Distribuzione età Consiglio Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Età (anni)"
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 5) Composizione sesso Giunta
+    # =====================================================
+    
+    df_giunta_sesso = df_evoluzione[
+        [
+            "Anno",
+            "Uomini Giunta (%)",
+            "Donne Giunta (%)"
+        ]
+    ].melt(
+        id_vars="Anno",
+        var_name="Sesso",
+        value_name="Percentuale"
+    )
+    
+    
+    fig = px.bar(
+        df_giunta_sesso,
+        x="Anno",
+        y="Percentuale",
+        color="Sesso",
+        barmode="stack",
+        title="Composizione di genere Giunta Comunale",
+        color_discrete_map={
+            "Uomini Giunta (%)": "blue",
+            "Donne Giunta (%)": "pink"
+        }
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 6) Composizione sesso Consiglio
+    # =====================================================
+    
+    df_consiglio_sesso = df_evoluzione[
+        [
+            "Anno",
+            "Uomini Consiglio (%)",
+            "Donne Consiglio (%)"
+        ]
+    ].melt(
+        id_vars="Anno",
+        var_name="Sesso",
+        value_name="Percentuale"
+    )
+    
+    
+    fig = px.bar(
+        df_consiglio_sesso,
+        x="Anno",
+        y="Percentuale",
+        color="Sesso",
+        barmode="stack",
+        title="Composizione di genere Consiglio Comunale",
+        color_discrete_map={
+            "Uomini Consiglio (%)": "blue",
+            "Donne Consiglio (%)": "pink"
+        }
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 7) Under 35 Giunta
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Under35 Giunta (%)",
+        markers=True,
+        title="Under 35 nella Giunta Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # 8) Under 35 Consiglio
+    # =====================================================
+    
+    fig = px.line(
+        df_evoluzione,
+        x="Anno",
+        y="Under35 Consiglio (%)",
+        markers=True,
+        title="Under 35 nel Consiglio Comunale"
+    )
+    
+    fig.update_yaxes(
+        title_text="Percentuale (%)",
+        range=[0,100]
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    
+    # =====================================================
+    # Data table
+    # =====================================================
+    
+    with st.expander("Mostra dati"):
+        st.dataframe(
+            df_evoluzione,
+            use_container_width=True,
+            hide_index=True
+        )
+
+def pagina_popolazione_comuni():
+
+    st.subheader("Comuni italiani per popolazione")
+
+    # =====================================================
+    # NORMALIZATION (UNICODE FIX DEFINITIVO)
+    # =====================================================
+    def normalize_comune(name):
+        if pd.isna(name):
+            return None
+    
+        name = str(name)
+    
+        # 1. decode safety (fix latin1 artifacts already read by pandas)
+        name = name.encode("latin1", errors="ignore").decode("utf-8", errors="ignore")
+    
+        # 2. normalize unicode (fix accents)
+        name = unicodedata.normalize("NFKC", name)
+    
+        # 3. remove combining marks (CRITICAL for ISTAT datasets)
+        name = "".join(c for c in name if not unicodedata.combining(c))
+    
+        # 4. cleanup spacing
+        name = " ".join(name.split())
+    
+        # 5. casefold for matching
+        return name.casefold()
+
+    def key_comune(name):
+        if pd.isna(name):
+            return None
+    
+        name = str(name)
+        name = unicodedata.normalize("NFKC", name)
+        name = "".join(c for c in name if not unicodedata.combining(c))
+        return name.casefold().strip()
+
+    # =====================================================
+    # DOWNLOAD ISTAT
+    # =====================================================
+    def load_istat_population(year):
+
+        zip_url = f"https://demo.istat.it/data/p2/P2_{year}_it_Comuni.zip"
+
+        r = requests.get(zip_url, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+
+        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+            csv_file = next(name for name in z.namelist() if name.endswith(".csv"))
+            with z.open(csv_file) as f:
+                df = pd.read_csv(f, sep=";", skiprows=1, encoding="latin1")
+
+        return df
+
+    # =====================================================
+    # COLONNE
+    # =====================================================
+    def find_population_column(df):
+        for c in df.columns:
+            if "Popolazione" in c and "31 dicembre - Totale" in c:
+                return c
+        raise KeyError("Colonna popolazione non trovata")
+
+    def find_municipality_column(df):
+        for c in df.columns:
+            if c.lower() in ["comune", "territorio", "denominazione"]:
+                return c
+        for c in df.columns:
+            if "comun" in c.lower():
+                return c
+        raise KeyError("Colonna comune non trovata")
+
+    def find_flow_column(df, keywords):
+        for c in df.columns:
+            cl = c.lower()
+            if all(k in cl for k in keywords):
+                return c
+        return None
+
+    # =====================================================
+    # DATASET
+    # =====================================================
+    @st.cache_data(show_spinner=False, ttl=3600)
+    def build_dataset(years):
+
+        all_data = []
+
+        for y in years:
+            df = load_istat_population(y)
+            df.columns = df.columns.str.strip()
+
+            pop_col = find_population_column(df)
+            muni_col = find_municipality_column(df)
+
+            male_births_col = find_flow_column(df, ["nati", "vivi", "maschi"])
+            female_births_col = find_flow_column(df, ["nati", "vivi", "femmine"])
+            emigrated_col = find_flow_column(df, ["emigrati", "estero"])
+
+            tmp = pd.DataFrame()
+
+            # ORIGINAL NAME (UI)
+            tmp["Comune"] = df[muni_col].astype(str).str.strip()
+            tmp["Comune_key"] = tmp["Comune"].apply(key_comune)
+
+            tmp["Popolazione"] = pd.to_numeric(df[pop_col], errors="coerce")
+            tmp["Nati maschi"] = pd.to_numeric(df[male_births_col], errors="coerce") if male_births_col else np.nan
+            tmp["Nati femmine"] = pd.to_numeric(df[female_births_col], errors="coerce") if female_births_col else np.nan
+            tmp["Emigrati estero"] = pd.to_numeric(df[emigrated_col], errors="coerce") if emigrated_col else np.nan
+
+            tmp["Anno"] = y
+
+            all_data.append(tmp)
+
+        return pd.concat(all_data, ignore_index=True)
+
+    # =====================================================
+    # ANALISI COMUNE
+    # =====================================================
+    def analyze_municipality(df, comune):
+
+        # FIX: always match on key_comune
+        d = df[df["Comune_key"] == key_comune(comune)].sort_values("Anno")
+
+        if d.empty:
+            st.error("Comune non trovato")
+            return
+
+        d = d.copy()
+
+        # =====================================================
+        # FEATURES
+        # =====================================================
+        d["variazione (%)"] = d["Popolazione"].pct_change() * 100
+        d["nuovi nati"] = d["Nati maschi"] + d["Nati femmine"]
+        d["emigrati all'estero"] = d["Emigrati estero"]
+
+        # =====================================================
+        # PERCENTILE
+        # =====================================================
+        def compute_percentile(row):
+            year_df = df[df["Anno"] == row["Anno"]]
+            return (year_df["Popolazione"] < row["Popolazione"]).mean() * 100
+
+        d["percentile"] = d.apply(compute_percentile, axis=1)
+
+        # =====================================================
+        # LATEST YEAR
+        # =====================================================
+        latest_year = d["Anno"].max()
+        last_row = d[d["Anno"] == latest_year].iloc[0]
+
+        # =====================================================
+        # METRICS
+        # =====================================================
+        if len(d) > 1:
+            prev_row = d.iloc[-2]
+
+            pop_delta = int(last_row["Popolazione"] - prev_row["Popolazione"])
+            pop_delta_pct = (
+                (last_row["Popolazione"] - prev_row["Popolazione"])
+                / prev_row["Popolazione"]
+            ) * 100
+
+            delta_label = f"{pop_delta:+,} ({pop_delta_pct:.2f}%)"
+        else:
+            delta_label = None
+
+        st.subheader(f"Comune selezionato: {comune.upper()}")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                label="Percentile popolazione",
+                value=f"{last_row['percentile']:.1f}%",
+                help=(
+                    f"Questo comune è più popolato del {last_row['percentile']:.1f}% dei comuni italiani. "
+                    f"Solo il {100 - last_row['percentile']:.1f}% ha più abitanti."
+                )
+            )
+
+        with col2:
+            st.metric(
+                label=f"Popolazione totale {latest_year}",
+                value=int(last_row["Popolazione"]),
+                delta=delta_label
+            )
+
+        # =====================================================
+        # CHARTS
+        # =====================================================
+
+        d["Anno"] = d["Anno"].astype(str)
+        
+        st.subheader("📊 Andamento della popolazione")
+        st.bar_chart(d.set_index("Anno")[["Popolazione"]])
+
+        st.subheader("📉 Variazione percentuale annuale")
+        st.line_chart(d.set_index("Anno")[["variazione (%)"]])
+
+        st.subheader("👶 Flussi demografici")
+        st.line_chart(
+            d.set_index("Anno")[["nuovi nati", "emigrati all'estero"]]
+        )
+
+    # =====================================================
+    # STREAMLIT APP
+    # =====================================================
+
+    years = range(2019, 2026)
+    df_all = build_dataset(years)
+
+    comuni = (
+    df_all["Comune"]
+    .dropna()
+    .astype(str)
+    .str.strip()
+    .unique()
+    )
+    
+    comuni_map = {c.upper(): c for c in comuni}
+
+    st.warning("⚠️ Alcuni nomi di comune presentano anomalie di formattazione dovute alla conversione errata delle lettere accentate nei dati di origine.")
+    
+    comune_sel_ui = st.selectbox(
+        "Seleziona un comune",
+        list(comuni_map.keys())
+    )
+    
+    comune_sel = comuni_map[comune_sel_ui]
+    
+    analyze_municipality(df_all, comune_sel)
+
+if pagina == "Home":
+    pagina_home()
+
+elif pagina == "Demo":
+    pagina_demo()
+
+elif pagina == "Analizzatore Cedolini":
+    pagina_cedolini_regione()
+
+elif pagina == "Anagrafica Consiglieri Regionali":
+    pagina_anagrafiche_regione()
+
+elif pagina == "Anagrafica Organi Comunali":
+    pagina_anagrafiche_comuni()
+
+elif pagina == "Evoluzione Organi Comunali":
+    pagina_evoluzione_comuni()
+
+elif pagina == "Comuni italiani per popolazione":
+    pagina_popolazione_comuni()
